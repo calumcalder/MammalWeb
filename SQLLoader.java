@@ -86,11 +86,11 @@ public class SQLLoader {
             boolean fractionalBlank = false;
             HashMap<Integer, Integer> noDifSpecies = new HashMap<Integer, Integer>();
             ArrayList<Integer> noUser = new ArrayList<Integer>();
+            String photoId = "";
             try {
                 query = "SELECT animal_id, photo_id, person_id, species FROM animal LIMIT " + (currentIndex) +",1"; //accessed by sort type none*****
                 rs = state.executeQuery(query);
                 String animalId = "";
-                String photoId = "";
                 String personId = "";
                 String species = "";
                 while (rs.next()) //process next entry
@@ -132,6 +132,8 @@ public class SQLLoader {
             if(result < 0.5) //testing value needs be able to be changed by admin
             {
                 //image classified. update xclassification. if all agree if nothing is there or if human is there etc....
+                String temp = "Image classified: " +photoId.toString() +" Evenness value: "+ result;
+                System.out.println(temp);//debug bullshit
             }
             else if(fractionalBlank)
             {
@@ -139,6 +141,8 @@ public class SQLLoader {
                 {
                     //make new table adding a point with user_id let admin know if image has been classified and someone has said nothing is there.
                     //could also be used if the user has selected the wrong species to many times etc...
+                    String temp = "User flag point added:" + noUser.get(i).toString();
+                    System.out.println(temp); //debug bullshit
                 }
             }
             else
