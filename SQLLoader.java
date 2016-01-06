@@ -106,9 +106,9 @@ public class SQLLoader {
                     Integer f = it.next();
                     if (f.equals(Integer.parseInt(photoId)))
                         photoIDExists = true;
-                        System.out.println("---------------------------------");
-                        System.out.println("Duplicate classification avoided.");
-                        System.out.println("---------------------------------");
+                        //System.out.println("---------------------------------");
+                        //System.out.println("Duplicate classification avoided.");
+                        //System.out.println("---------------------------------");
                         break;
                 }
                 String getPhotoInstances = "SELECT animal_id, species, person_id FROM animal WHERE photo_id =" + photoId;
@@ -142,16 +142,24 @@ public class SQLLoader {
 
                     double result = calculateEvenness(noDifSpecies, total); //each individual photo.
                     boolean classified = false;
+                    boolean majorityBlanks = false;
                     if (result < 0.5) //testing value needs be able to be changed by admin
                     {
-                        //image classified. update xclassification. if all agree if nothing is there or if human is there etc....
+                        int maxValueInMap=(Collections.max(noDifSpecies.values()));  //ensure not to report the user if the majority of cases are nothing there photos.
+                        for (HashMap.Entry<Integer, Integer> entry : noDifSpecies.entrySet()) {
+                            if (entry.getValue()==maxValueInMap) {
+                               if(entry.getKey() == 86) {
+                                   majorityBlanks = true;
+                               }
+                            }
+                        }
                         classified = true;
                         System.out.println("");
                         String temp = "Image classified: " + photoId.toString() + " Evenness value: " + result;
                         System.out.println(temp);
                         System.out.println("");
                     }
-                    if (fractionalBlank && (classified == true) && result != 0) //if 1.0 then 50/50 avoid flag only if classified passed
+                    if (fractionalBlank && (classified == true) && (result != 0) && (!majorityBlanks)) //if 1.0 then 50/50 avoid flag only if classified passed
                     {
                         for (int i = 0; i < noUser.size(); i++) {
                             //make new table adding a point with user_id let admin know if image has been classified and someone has said nothing is there.
