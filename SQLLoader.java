@@ -81,6 +81,8 @@ public class SQLLoader {
         catch (SQLException ex) {
             return false;
         }
+
+        Set<Integer> photoClassified = new TreeSet<Integer>();
         while(currentIndex != currentIndexLimit) {
             double total = 0;
             boolean fractionalBlank = false;
@@ -88,7 +90,7 @@ public class SQLLoader {
             ArrayList<Integer> noUser = new ArrayList<Integer>();
             String photoId = "";
             try {
-                query = "SELECT animal_id, photo_id, person_id, species FROM animal LIMIT " + (currentIndex) +",1"; //accessed by sort type none*****
+                query = "SELECT animal_id, photo_id, person_id, species FROM animal LIMIT " + (currentIndex) + ",1"; //accessed by sort type none*****
                 rs = state.executeQuery(query);
                 String animalId = "";
                 String personId = "";
@@ -98,64 +100,76 @@ public class SQLLoader {
                     animalId = rs.getString("animal_id");
                     photoId = rs.getString("photo_id");
                 }
-                System.out.println(animalId);
-
+                //System.out.println(animalId);
+                boolean photoIDExists = false;
+                for (Iterator<Integer> it = photoClassified.iterator(); it.hasNext(); ) {
+                    Integer f = it.next();
+                    if (f.equals(Integer.parseInt(photoId)))
+                        photoIDExists = true;
+                        System.out.println("---------------------------------");
+                        System.out.println("Duplicate classification avoided.");
+                        System.out.println("---------------------------------");
+                        break;
+                }
                 String getPhotoInstances = "SELECT animal_id, species, person_id FROM animal WHERE photo_id =" + photoId;
                 ResultSet photoInstances = state.executeQuery(getPhotoInstances);
-                while (photoInstances.next()) {
-                    animalId = photoInstances.getString("animal_id"); //get all animals regarding the same photo_id.
-                    personId = photoInstances.getString("person_id");
-                    //photoId=photoInstances.getString("photo_id");
-                    // personId=photoInstances.getString("personId"); //get user associated with photo_id then add to anarraylist.
+                if(!photoIDExists) {
+                    photoClassified.add(Integer.parseInt(photoId));
 
-                    species = photoInstances.getString("species");
+                    while (photoInstances.next()) {
+                        animalId = photoInstances.getString("animal_id"); //get all animals regarding the same photo_id.
+                        personId = photoInstances.getString("person_id");
+                        //photoId=photoInstances.getString("photo_id");
+                        // personId=photoInstances.getString("personId"); //get user associated with photo_id then add to anarraylist.
 
-                    if(Integer.parseInt(species) == 86) {
-                        noUser.add(Integer.parseInt(personId));
-                        fractionalBlank = true;
+                        species = photoInstances.getString("species");
+
+                        if (Integer.parseInt(species) == 86) {
+                            noUser.add(Integer.parseInt(personId));
+                            fractionalBlank = true;
+                        }
+                        if (Integer.parseInt(species) == 87) {
+                            //Human in photo
+                        }
+                        if (noDifSpecies.get(Integer.parseInt(species)) != null) {
+                            noDifSpecies.put(Integer.parseInt(species), noDifSpecies.get(Integer.parseInt(species)) + 1);
+                            total += 1; //get total while processing for evenness
+                        } else {
+                            noDifSpecies.put(Integer.parseInt(species), 1);
+                            total += 1;
+                        }
                     }
-                    if(Integer.parseInt(species) == 87) {
-                        //Human in photo
+
+                    double result = calculateEvenness(noDifSpecies, total); //each individual photo.
+                    boolean classified = false;
+                    if (result < 0.5) //testing value needs be able to be changed by admin
+                    {
+                        //image classified. update xclassification. if all agree if nothing is there or if human is there etc....
+                        classified = true;
+                        System.out.println("");
+                        String temp = "Image classified: " + photoId.toString() + " Evenness value: " + result;
+                        System.out.println(temp);
+                        System.out.println("");
                     }
-                    if (noDifSpecies.get(Integer.parseInt(species)) != null) {
-                        noDifSpecies.put(Integer.parseInt(species), noDifSpecies.get(Integer.parseInt(species)) + 1);
-                        total+=1; //get total while processing for evenness
+                    if (fractionalBlank && (classified == true) && result != 0) //if 1.0 then 50/50 avoid flag only if classified passed
+                    {
+                        for (int i = 0; i < noUser.size(); i++) {
+                            //make new table adding a point with user_id let admin know if image has been classified and someone has said nothing is there.
+                            //could also be used if the user has selected the wrong species to many times etc...
+                            String temp = "User flag point added:" + noUser.get(i).toString();
+                            System.out.println(temp);
+                        }
                     } else {
-                        noDifSpecies.put(Integer.parseInt(species), 1);
-                        total+=1;
+                        //recirculate image priority?
                     }
                 }
-            } catch (SQLException ex) {
-                return false;
-            }
-            double result = calculateEvenness(noDifSpecies,total); //each individual photo.
-            boolean classified = false;
-            if(result < 0.5) //testing value needs be able to be changed by admin
-            {
-                //image classified. update xclassification. if all agree if nothing is there or if human is there etc....
-                classified = true;
-                String temp = "Image classified: " +photoId.toString() +" Evenness value: "+ result;
-                System.out.println(temp);
-            }
-            if(fractionalBlank && (classified == true) && result!= 0) //flag only if classified passed
-            {
-                for(int i = 0; i < noUser.size(); i++)
-                {
-                    //make new table adding a point with user_id let admin know if image has been classified and someone has said nothing is there.
-                    //could also be used if the user has selected the wrong species to many times etc...
-                    String temp = "User flag point added:" + noUser.get(i).toString();
-                    System.out.println(temp);
+
+                }catch(SQLException ex){
+                    return false;
                 }
-            }
-            else
-            {
-                //recirculate image priority?
-            }
-
-
-            //todo here setup up threshold then write to a new table classified image etc.
             currentIndex++; //increase where up to, this restarts every time the algorithm is re ran**.
         }
+
         return true;
     }
     public static void main(String[] args)
