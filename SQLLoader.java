@@ -129,20 +129,22 @@ public class SQLLoader {
                 return false;
             }
             double result = calculateEvenness(noDifSpecies,total); //each individual photo.
+            boolean classified = false;
             if(result < 0.5) //testing value needs be able to be changed by admin
             {
                 //image classified. update xclassification. if all agree if nothing is there or if human is there etc....
+                classified = true;
                 String temp = "Image classified: " +photoId.toString() +" Evenness value: "+ result;
-                System.out.println(temp);//debug bullshit
+                System.out.println(temp);
             }
-            else if(fractionalBlank && result >= 0.99)
+            else if(fractionalBlank && (result != 1.0) && (classified == true)) //if 1.0 then 50/50 avoid flag only if classified passed
             {
                 for(int i = 0; i < noUser.size(); i++)
                 {
                     //make new table adding a point with user_id let admin know if image has been classified and someone has said nothing is there.
                     //could also be used if the user has selected the wrong species to many times etc...
                     String temp = "User flag point added:" + noUser.get(i).toString();
-                    System.out.println(temp); //debug bullshit
+                    System.out.println(temp);
                 }
             }
             else
