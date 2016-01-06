@@ -135,7 +135,7 @@ public class SQLLoader {
                 String temp = "Image classified: " +photoId.toString() +" Evenness value: "+ result;
                 System.out.println(temp);//debug bullshit
             }
-            else if(fractionalBlank)
+            else if(fractionalBlank && result >= 0.99)
             {
                 for(int i = 0; i < noUser.size(); i++)
                 {
