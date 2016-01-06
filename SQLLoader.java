@@ -41,10 +41,6 @@ public class SQLLoader {
 
         for(Object value : temp.values())
         {
-            if((Integer)value == 86) //86 is the value defined as nothing, see object table.
-            {
-                //do something to flag user. likely need an array to hold users in.
-            }
             numerator += (double)((Double.parseDouble(value.toString())/total)*(Math.log(Double.parseDouble(value.toString())/total)));
         }
         evenness = (-numerator)/Math.log(temp.size());
@@ -87,7 +83,9 @@ public class SQLLoader {
         }
         while(currentIndex != currentIndexLimit) {
             double total = 0;
+            boolean fractionalBlank = false;
             HashMap<Integer, Integer> noDifSpecies = new HashMap<Integer, Integer>();
+            ArrayList<Integer> noUser = new ArrayList<Integer>();
             try {
                 query = "SELECT animal_id, photo_id, person_id, species FROM animal LIMIT " + (currentIndex) +",1"; //accessed by sort type none*****
                 rs = state.executeQuery(query);
@@ -99,18 +97,26 @@ public class SQLLoader {
                 {
                     animalId = rs.getString("animal_id");
                     photoId = rs.getString("photo_id");
-                    personId = rs.getString("person_id");
-                    species = rs.getString("species");
                 }
                 System.out.println(animalId);
 
-                String getPhotoInstances = "SELECT animal_id, species FROM animal WHERE photo_id =" + photoId;
+                String getPhotoInstances = "SELECT animal_id, species, person_id FROM animal WHERE photo_id =" + photoId;
                 ResultSet photoInstances = state.executeQuery(getPhotoInstances);
                 while (photoInstances.next()) {
                     animalId = photoInstances.getString("animal_id"); //get all animals regarding the same photo_id.
+                    personId = photoInstances.getString("person_id");
                     //photoId=photoInstances.getString("photo_id");
                     // personId=photoInstances.getString("personId"); //get user associated with photo_id then add to anarraylist.
+
                     species = photoInstances.getString("species");
+
+                    if(Integer.parseInt(species) == 86) {
+                        noUser.add(Integer.parseInt(personId));
+                        fractionalBlank = true;
+                    }
+                    if(Integer.parseInt(species) == 87) {
+                        //Human in photo
+                    }
                     if (noDifSpecies.get(Integer.parseInt(species)) != null) {
                         noDifSpecies.put(Integer.parseInt(species), noDifSpecies.get(Integer.parseInt(species)) + 1);
                         total+=1; //get total while processing for evenness
@@ -122,7 +128,25 @@ public class SQLLoader {
             } catch (SQLException ex) {
                 return false;
             }
-            calculateEvenness(noDifSpecies,total); //each individual photo.
+            double result = calculateEvenness(noDifSpecies,total); //each individual photo.
+            if(result < 0.5) //testing value needs be able to be changed by admin
+            {
+                //image classified. update xclassification. if all agree if nothing is there or if human is there etc....
+            }
+            else if(fractionalBlank)
+            {
+                for(int i = 0; i < noUser.size(); i++)
+                {
+                    //make new table adding a point with user_id let admin know if image has been classified and someone has said nothing is there.
+                    //could also be used if the user has selected the wrong species to many times etc...
+                }
+            }
+            else
+            {
+                //recirculate image priority?
+            }
+
+
             //todo here setup up threshold then write to a new table classified image etc.
             currentIndex++; //increase where up to, this restarts every time the algorithm is re ran**.
         }
