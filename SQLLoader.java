@@ -137,7 +137,7 @@ public class SQLLoader {
                 String temp = "Image classified: " +photoId.toString() +" Evenness value: "+ result;
                 System.out.println(temp);
             }
-            if(fractionalBlank && (classified == true) && result!= 0) //if 1.0 then 50/50 avoid flag only if classified passed
+            if(fractionalBlank && (classified == true) && result!= 0) //flag only if classified passed
             {
                 for(int i = 0; i < noUser.size(); i++)
                 {
