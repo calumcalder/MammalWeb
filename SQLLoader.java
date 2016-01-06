@@ -8,7 +8,7 @@ public class SQLLoader {
     {
 
     }
-    int currentIndex = 1;
+    int currentIndex = 0;
     int currentIndexLimit = 0;
     public Connection connectDataBase()
     {
@@ -89,7 +89,7 @@ public class SQLLoader {
             double total = 0;
             HashMap<Integer, Integer> noDifSpecies = new HashMap<Integer, Integer>();
             try {
-                query = "SELECT animal_id, photo_id, person_id, species FROM animal LIMIT " + currentIndex; //accessed by sort type none*****
+                query = "SELECT animal_id, photo_id, person_id, species FROM animal LIMIT " + (currentIndex) +",1"; //accessed by sort type none*****
                 rs = state.executeQuery(query);
                 String animalId = "";
                 String photoId = "";
