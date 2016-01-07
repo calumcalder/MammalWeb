@@ -88,6 +88,7 @@ public class SQLLoader {
             boolean fractionalBlank = false;
             HashMap<Integer, Integer> noDifSpecies = new HashMap<Integer, Integer>();
             ArrayList<Integer> noUser = new ArrayList<Integer>();
+            ArrayList<Integer> noUserSpec = new ArrayList<Integer>();
             String photoId = "";
             try {
                 query = "SELECT animal_id, photo_id, person_id, species FROM animal LIMIT " + (currentIndex) + ",1"; //accessed by sort type none*****
@@ -134,8 +135,10 @@ public class SQLLoader {
                         if (noDifSpecies.get(Integer.parseInt(species)) != null) {
                             noDifSpecies.put(Integer.parseInt(species), noDifSpecies.get(Integer.parseInt(species)) + 1);
                             total += 1; //get total while processing for evenness
+                            noUserSpec.add(Integer.parseInt(personId));
                         } else {
                             noDifSpecies.put(Integer.parseInt(species), 1);
+                            noUserSpec.add(Integer.parseInt(personId));
                             total += 1;
                         }
                     }
@@ -153,17 +156,23 @@ public class SQLLoader {
                                }
                             }
                         }
+
+                        if(majorityBlanks == false) {
+                            //write to database noUserSpec with photo id to xclassification table
+                        }
+                        else if((majorityBlanks == true) {
+                            //write to database noUser with photo id to xclassification table
+                        }
                         classified = true;
                         System.out.println("");
                         String temp = "Image classified: " + photoId.toString() + " Evenness value: " + result;
                         System.out.println(temp);
                         System.out.println("");
                     }
-                    if (fractionalBlank && (classified == true) && (result != 0) && (!majorityBlanks)) //if 1.0 then 50/50 avoid flag only if classified passed
+                    if (fractionalBlank && (classified == true) && (result != 0) && (!majorityBlanks)) //if classified passed
                     {
                         for (int i = 0; i < noUser.size(); i++) {
-                            //make new table adding a point with user_id let admin know if image has been classified and someone has said nothing is there.
-                            //could also be used if the user has selected the wrong species to many times etc...
+                            //report user to seperate table with spamming point.
                             String temp = "User flag point added:" + noUser.get(i).toString();
                             System.out.println(temp);
                         }
