@@ -160,7 +160,7 @@ public class SQLLoader {
                         if(majorityBlanks == false) {
                             //write to database noUserSpec with photo id to xclassification table
                         }
-                        else if((majorityBlanks == true) {
+                        else if(majorityBlanks == true) {
                             //write to database noUser with photo id to xclassification table
                         }
                         classified = true;
