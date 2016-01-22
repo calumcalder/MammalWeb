@@ -72,7 +72,7 @@ public class SQLLoader {
     }
     
     boolean photoClassified(int curID, Set<Integer> classified) {
-	for (int id : classified.iterator()) {
+	for (int id : classified) {
 		if (id == curID) 
 			return true;
 	}
@@ -109,18 +109,18 @@ public class SQLLoader {
                 String animalId = "";
                 String personId = "";
                 String species = "";
-		// Will this not only find the last entry in the result set?
+		// XXX: Will this not only find the last entry in the result set?
                 while (rs.next()) //process next entry
                 {
                     animalId = rs.getString("animal_id");
                     photoId = rs.getString("photo_id");
                 }
                 //System.out.println(animalId);
-		boolean photoIDExists = photoClassified(photoId, photoClassified);
+		boolean photoAlreadyClassified = photoClassified(Integer.parseInt(photoId), photoClassified);
 		
                 String getPhotoInstances = "SELECT animal_id, species, person_id FROM MammalWeb.Animal WHERE photo_id =" + photoId;
                 ResultSet photoInstances = state.executeQuery(getPhotoInstances);
-                if(!photoIDExists) {
+                if(!photoAlreadyClassified) {
                     photoClassified.add(Integer.parseInt(photoId));
 
                     while (photoInstances.next()) {
