@@ -169,11 +169,13 @@ public class SQLLoader {
 				// Write to database noUserSpec with photo id to xclassification table
 			}
 			
-                        classified = true;
-                        System.out.println("");
-                        String temp = "Image classified: " + photoId.toString() + " Evenness value: " + result;
-                        System.out.println(temp);
-                        System.out.println("");
+			if (result > 0) {
+				classified = true;
+				System.out.println("");
+				String temp = "Image classified: " + photoId.toString() + " Evenness value: " + result;
+				System.out.println(temp);
+				System.out.println("");
+			}
                     }
                     if (fractionalBlank && (classified == true) && (result != 0) && (!majorityBlanks)) //if classified passed
                     {
