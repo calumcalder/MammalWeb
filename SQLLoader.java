@@ -4,6 +4,9 @@ import java.lang.Math;
 
 public class SQLLoader {
 
+	
+	static final int ID_NONE = 86;
+	static final int ID_HUMAN = 87;
     public  SQLLoader()
     {
 
@@ -106,6 +109,7 @@ public class SQLLoader {
                 String animalId = "";
                 String personId = "";
                 String species = "";
+		// Will this not only find the last entry in the result set?
                 while (rs.next()) //process next entry
                 {
                     animalId = rs.getString("animal_id");
@@ -127,11 +131,11 @@ public class SQLLoader {
 
                         species = photoInstances.getString("species");
 
-                        if (Integer.parseInt(species) == 86) {
+                        if (Integer.parseInt(species) == ID_NONE) {
                             noUser.add(Integer.parseInt(personId));
                             fractionalBlank = true;
                         }
-                        if (Integer.parseInt(species) == 87) {
+                        if (Integer.parseInt(species) == ID_HUMAN) {
                             //Human in photo
                         }
                         if (noDifSpecies.get(Integer.parseInt(species)) != null) {
@@ -153,7 +157,7 @@ public class SQLLoader {
                         int maxValueInMap=(Collections.max(noDifSpecies.values()));  //ensure not to report the user if the majority of cases are nothing there photos.
                         for (HashMap.Entry<Integer, Integer> entry : noDifSpecies.entrySet()) {
                             if (entry.getValue()==maxValueInMap) {
-                               if(entry.getKey() == 86) {
+                               if(entry.getKey() == ID_NONE) {
                                    majorityBlanks = true;
                                }
                             }
