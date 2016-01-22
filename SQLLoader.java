@@ -20,9 +20,9 @@ public class SQLLoader {
             System.out.println(e.getMessage());
         }
         try {
-            String host = "jdbc:mysql://127.0.0.1:3306/test";
-            String uName = "";
-            String uPass = "";
+            String host = "jdbc:mysql://calum-calder.com:3306";
+            String uName = "admin3";
+            String uPass = "admin";
             con = DriverManager.getConnection(host, uName, uPass);
         }
         catch(SQLException err) {
@@ -55,7 +55,7 @@ public class SQLLoader {
         try {
             Statement count = null;
             count = connectDataBase().createStatement();
-            String query = "SELECT COUNT(*) FROM animal";
+            String query = "SELECT COUNT(*) FROM MammalWeb.Animal";
             ResultSet countRs = count.executeQuery(query); //getTableSize needs to be wrapped in a timer every 5 minutes use for checking whether to update or not.
             while(countRs.next())
             {
@@ -66,6 +66,14 @@ public class SQLLoader {
             return 0;
         }
         return size;
+    }
+    
+    boolean photoClassified(int curID, Set<Integer> classified) {
+	for (int id : classified.iterator()) {
+		if (id == curID) 
+			return true;
+	}
+	return false;
     }
 
     public boolean classifyImages()
@@ -83,6 +91,8 @@ public class SQLLoader {
         }
 
         Set<Integer> photoClassified = new TreeSet<Integer>();
+	System.out.println(currentIndex);
+	System.out.println(currentIndexLimit);
         while(currentIndex != currentIndexLimit) {
             double total = 0;
             boolean fractionalBlank = false;
@@ -91,7 +101,7 @@ public class SQLLoader {
             ArrayList<Integer> noUserSpec = new ArrayList<Integer>();
             String photoId = "";
             try {
-                query = "SELECT animal_id, photo_id, person_id, species FROM animal LIMIT " + (currentIndex) + ",1"; //accessed by sort type none*****
+                query = "SELECT animal_id, photo_id, person_id, species FROM MammalWeb.Animal LIMIT " + (currentIndex) + ",1"; //accessed by sort type none*****
                 rs = state.executeQuery(query);
                 String animalId = "";
                 String personId = "";
@@ -102,17 +112,9 @@ public class SQLLoader {
                     photoId = rs.getString("photo_id");
                 }
                 //System.out.println(animalId);
-                boolean photoIDExists = false;
-                for (Iterator<Integer> it = photoClassified.iterator(); it.hasNext(); ) {
-                    Integer f = it.next();
-                    if (f.equals(Integer.parseInt(photoId)))
-                        photoIDExists = true;
-                        //System.out.println("---------------------------------");
-                        //System.out.println("Duplicate classification avoided.");
-                        //System.out.println("---------------------------------");
-                        break;
-                }
-                String getPhotoInstances = "SELECT animal_id, species, person_id FROM animal WHERE photo_id =" + photoId;
+		boolean photoIDExists = photoClassified(photoId, photoClassified);
+		
+                String getPhotoInstances = "SELECT animal_id, species, person_id FROM MammalWeb.Animal WHERE photo_id =" + photoId;
                 ResultSet photoInstances = state.executeQuery(getPhotoInstances);
                 if(!photoIDExists) {
                     photoClassified.add(Integer.parseInt(photoId));
