@@ -163,12 +163,12 @@ public class SQLLoader {
                             }
                         }
 
-                        if(majorityBlanks == false) {
-                            //write to database noUserSpec with photo id to xclassification table
-                        }
-                        else if(majorityBlanks == true) {
-                            //write to database noUser with photo id to xclassification table
-                        }
+			if (majorityBlanks) {
+				// Write to database noUser with photo id to xclassification table
+			} else {
+				// Write to database noUserSpec with photo id to xclassification table
+			}
+			
                         classified = true;
                         System.out.println("");
                         String temp = "Image classified: " + photoId.toString() + " Evenness value: " + result;
