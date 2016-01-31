@@ -1,10 +1,6 @@
 /**
  * Created by Stefan on 30/01/2016.
  */
-/**
- * Created by Stefan on 30/01/2016.
- */
-import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.sql.*;
 import java.util.*;
