@@ -181,7 +181,7 @@ public class Crawler {
                     if(!photoId.equals(photoInstances.getString("photo_id")))
                     {
                         result = calculateEvenness(noDifSpecies,total);
-                        if(consecBlanksFlag && photoId.equals("124"))
+                        if(consecBlanksFlag)
                         {
                             classificationUserBlank(noUser,Integer.parseInt(photoId));
                         }
