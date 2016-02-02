@@ -1,6 +1,10 @@
 /**
  * Created by Stefan on 30/01/2016.
  */
+/**
+ * Created by Stefan on 30/01/2016.
+ */
+import com.sun.org.apache.xpath.internal.operations.Bool;
 
 import java.sql.*;
 import java.util.*;
@@ -13,6 +17,8 @@ public class Crawler {
 
     static final int ID_NONE = 86;
     static final int ID_HUMAN = 87;
+    static final int ID_CONSENSUS = 10;
+    static final int ID_CONSECUTIVE = 5;
 
     int currentIndex = 0;
     int currentIndexLimit = 0;
@@ -85,6 +91,14 @@ public class Crawler {
         //write to xclassification
     }
 
+    private void deletePhotos(String photo_id) throws SQLException //if classified photo delete from animal table
+    {
+        Statement state = null;
+        state = connectDataBase().createStatement();
+        String getPhotos = "DELETE FROM MammalWeb.Animal WHERE photo_id" + photo_id;
+        state.executeUpdate(getPhotos);
+    }
+
     private boolean MajorityBlankCheck()
     {
         return true;
@@ -112,7 +126,7 @@ public class Crawler {
         boolean fractionalBlank = false;
 
         HashMap<Integer, Integer> noDifSpecies = new HashMap<Integer, Integer>();
-        ArrayList<Integer> noUser = new ArrayList<Integer>();
+        ArrayList<Integer> noUserBlank = new ArrayList<Integer>();
         ArrayList<Integer> noUserSpec = new ArrayList<Integer>();
         ArrayList<Integer> noUserHuman = new ArrayList<Integer>();
 
@@ -121,13 +135,15 @@ public class Crawler {
             String animalId = "";
             String personId = "";
             String species = "";
-            String photoId = "0";
-            String previousId = "0";
+            String photoId = "";
+            String previousId = "";
 
             int consecBlanksCount = 0;
             int blankConsensusCount = 0;
             double result = 0;
             boolean consecBlanksFlag = false;
+            boolean blankConsensusFlag = false;
+
             String getPhotoInstances = "SELECT animal_id, species, person_id, photo_id FROM MammalWeb.Animal ORDER BY photo_id";
 
             ResultSet photoInstances = state.executeQuery(getPhotoInstances);
@@ -143,13 +159,24 @@ public class Crawler {
                     species = photoInstances.getString("species");
 
                     if (Integer.parseInt(species) == ID_NONE) {
-                        noUser.add(Integer.parseInt(personId));
-                        fractionalBlank = true;
+                        noUserBlank.add(Integer.parseInt(personId));
+
                         consecBlanksCount += 1;
                         blankConsensusCount += 1;
-                        if(consecBlanksCount == 5)
+                        if(noDifSpecies.size() == 1) {
+                            Integer firstKey = (Integer)noDifSpecies.keySet().toArray()[0];
+                            if (consecBlanksCount == ID_CONSECUTIVE && firstKey == ID_NONE) {
+                                consecBlanksFlag = true;
+                            }
+                        }
+
+                        if(blankConsensusCount == ID_CONSENSUS)
                         {
-                            consecBlanksFlag = true;
+                            blankConsensusFlag = true;
+                        }
+                        else
+                        {
+                            fractionalBlank = true;
                         }
                     }
                     if (Integer.parseInt(species) == ID_HUMAN) {
@@ -176,37 +203,65 @@ public class Crawler {
 
 
                 }
-                if(photoInstances.next())
-                {
-                    if(!photoId.equals(photoInstances.getString("photo_id")))
-                    {
-                        result = calculateEvenness(noDifSpecies,total);
-                        if(consecBlanksFlag)
-                        {
-                            classificationUserBlank(noUser,Integer.parseInt(photoId));
-                        }
-                        if(result < 0.5)
-                        {
-                            System.out.println("Evenness: " +result+ " Image: " + previousId);
-                            if(fractionalBlank)
-                            {
 
-                            }
-                        }
-                        consecBlanksFlag = false;
+                else if(!previousId.equals(photoId)) {
+                    result = calculateEvenness(noDifSpecies, total);
+                    if (consecBlanksFlag) {
+                        classificationUserBlank(noUserBlank, Integer.parseInt(previousId));
+                        //deletePhotos(previousId);
+                        System.out.println("Blank consecutive Image: " + Integer.parseInt(previousId));
+                    } else if (blankConsensusFlag) {
+                        classificationUserBlank(noUserBlank, Integer.parseInt(previousId));//check possible rogue users
+                        //deletePhotos(previousId);
+                        System.out.println("Blank consensus image: " + Integer.parseInt(previousId));
+                    }
+                    System.out.println(previousId.toString());
+                    if (result < 0.5) {
+                        //System.out.println("Evenness: " +result+ " Image: " + previousId);
+                        if (fractionalBlank) {
 
-                        noDifSpecies.clear();
-                        noUser.clear();
-                        noUserSpec.clear();
-                        noUserHuman.clear();
-                        blankConsensusCount = 0;
-                        consecBlanksCount = 0;
-                        total=0;
+                        }
+                    }
+                    consecBlanksFlag = false;
+                    blankConsensusFlag = false;
+                    fractionalBlank = false;
+
+                    noDifSpecies.clear();
+                    noUserBlank.clear();
+                    noUserSpec.clear();
+                    noUserHuman.clear();
+
+                    blankConsensusCount = 0;
+                    consecBlanksCount = 0;
+                    total = 0;
+
+                    personId = photoInstances.getString("person_id");
+                    species = photoInstances.getString("species");
+
+                    if (Integer.parseInt(species) == ID_NONE) { //Process beginning of next record
+                        noUserBlank.add(Integer.parseInt(personId));
+
+                        consecBlanksCount += 1;
+                        blankConsensusCount += 1;
 
                     }
+                    if (Integer.parseInt(species) == ID_HUMAN) {
+                        noUserHuman.add(Integer.parseInt(personId));
+                    }
+
+                    if(noDifSpecies.get(Integer.parseInt(species)) == null) {
+                        noDifSpecies.put(Integer.parseInt(species), 1);
+                        noUserSpec.add(Integer.parseInt(personId));
+                        total += 1;
+                        if(Integer.parseInt(species) != ID_NONE)
+                        {
+                            consecBlanksCount = 0;
+                        }
+                    }
+
                     previousId = photoInstances.getString("photo_id");
-                    photoInstances.previous();
                 }
+
 
 
             }
