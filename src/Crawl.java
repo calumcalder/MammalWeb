@@ -33,9 +33,9 @@ public class Crawl {
             System.out.println(e.getMessage());
         }
         try {
-            String host = "jdbc:mysql://calum-calder.com:3306";
-            String uName = "admin3";
-            String uPass = "admin";
+            String host = "jdbc:mysql://127.0.0.1:3306";
+            String uName = "";
+            String uPass = "";
             con = DriverManager.getConnection(host, uName, uPass);
         } catch (SQLException err) {
             System.out.println(err.getMessage());
@@ -194,28 +194,13 @@ public class Crawl {
         if (species.size() >= 25) {
             //if (calculateEvenness(species)
         }
+        System.out.println("Photo_id: "+photo_id+": "+calculateEvenness(species));
     }
 
-    static {
-//        if (speciesID == ID_NONE) {
-//            if (lastBlank)
-//                consecutiveBlanks += 1;
-//        } else {
-//            lastBlank = false;
-//            consecutiveBlanks = 0;
-//        }
-//        speciesCount.put(
-//                speciesID,
-//                speciesCount.getOrDefault(speciesID, 0) + 1
-//        );
-//        if (consecutiveBlanks >= 5) {
-//            return speciesCount;
-//        }
-    }
 
     public ArrayList<Integer> getPhotoVotes(Integer photo_id) throws SQLException {
         ArrayList<Integer> species = new ArrayList<Integer>();
-        String query = "SELECT species FROM animal WHERE photo_id = " + photo_id.toString() + ";";
+        String query = "SELECT species FROM MammalWeb.Animal WHERE photo_id = " + photo_id.toString() + ";";
         ResultSet relatedPhotos = state.executeQuery(query);
 
         while(relatedPhotos.next())
@@ -234,7 +219,7 @@ public class Crawl {
             return false;
         }
 
-        String getAnimalInstance = "SELECT photo_id FROM MammalWeb.Animal WHERE classified = 0 ORDER BY animal_id"; //get photo in ascending order
+        String getAnimalInstance = "SELECT animal_id, photo_id FROM MammalWeb.Animal WHERE classified = 0 ORDER BY animal_id"; //get photo in ascending order
         String getPhotos = null;
         try {
             ResultSet animalInstance = null;
@@ -246,22 +231,8 @@ public class Crawl {
             LinkedHashSet<Integer> photosToUpdate = new LinkedHashSet<Integer>();
             animalInstance.absolute(row);
             while (animalInstance.next()) {
-                photosToUpdate.add(animalInstance.getInt('photo_id'))
-//                System.out.println("Animal ID: " + animalInstance.getString("animal_id"));
-//                getPhotos = "SELECT animal_id,photo_id, species, person_id, gender, age, number, photo_id FROM MammalWeb.Animal WHERE photo_id=" + animalInstance.getString("photo_id");//"SELECT COUNT("+animalInstance.getString("photo_id")+")AS COUNTIMAGES FROM MammalWeb.Animal WHERE photo_id="+animalInstance.getString("photo_id");
-//                getPhotoInstances = InsertState.executeQuery(getPhotos);
-//                while (getPhotoInstances.next()) {
-//                    photosToUpdate.add(animalInstance.getInt("photo_id"));
-//                }
-//                Double result = calculateEvenness();
-//                if (setClassifiedFlag(animalInstance.getInt("animal_id"), updateClassifiedState)) {
-//                    System.out.println("Updated state");
-//                } else {
-//                    System.out.println("Failed");
-//                }
-//                System.out.println(result);
-//
-//                lastID = Integer.parseInt(animalInstance.getString("animal_id"));
+                photosToUpdate.add(animalInstance.getInt("photo_id"));
+                lastID = Integer.parseInt(animalInstance.getString("animal_id"));
             }
             updatePhotos(photosToUpdate);
             writeIndex("index.txt", lastID);
