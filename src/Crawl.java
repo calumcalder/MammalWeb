@@ -10,9 +10,7 @@ import java.sql.*;
 import static java.nio.file.StandardOpenOption.*;
 import java.nio.file.*;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
+import java.util.*;
 
 /**
  * Created by Stefan on 25/02/2016.
@@ -126,22 +124,105 @@ public class Crawl {
     }
 
     public boolean setClassifiedFlag(Integer animal_id, Statement state) {
-	try {
-		String queryString = "UPDATE  `MammalWeb`.`Animal` SET  `classified` =  '1' WHERE  `Animal`.`animal_id` = " + animal_id.toString() + ";";
-		state.executeUpdate(queryString);
-		return true;
-	} catch (SQLException e) {
-		e.printStackTrace();
-		return false;
-	}
+        try {
+            String queryString = "UPDATE  `MammalWeb`.`Animal` SET  `classified` =  '1' WHERE  `Animal`.`animal_id` = " + animal_id.toString() + ";";
+            state.executeUpdate(queryString);
+            return true;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     Statement state;
     Statement updateClassifiedState;
     Statement InsertState;
-    Integer currentIndexLimit;
     Integer lastID = null;
     Integer setRow = 0;
+
+    public void updatePhotos(Set<Integer> photosToUpdate) throws SQLException {
+         for (Integer photo_id : photosToUpdate) {
+             updatePhoto(photo_id);
+         }
+    }
+
+    public boolean consecutiveBlanks(ArrayList<Integer> voteSpecies) {
+        if (voteSpecies.size() < 5)
+            return false;
+
+        int consecutive = 0;
+        for (Integer species : voteSpecies) {
+            if (species == ID_NONE)
+                consecutive += 1;
+            else
+                consecutive = 0;
+
+            if (consecutive >= 5)
+                return true;
+        }
+
+        return false;
+    }
+
+    public Integer consensus(ArrayList<Integer> voteSpecies){
+        HashMap<Integer,Integer>speciesCount = new HashMap<Integer,Integer>();
+        for(Integer speciesID : voteSpecies)
+            speciesCount.put(
+                    speciesID,
+                    speciesCount.getOrDefault(speciesID, 0) + 1
+            );
+        Integer consensusID = -1;
+        Integer countMax = 0;
+        for(Integer key : speciesCount.keySet()) {
+            Integer votes = speciesCount.get(key);
+            if (votes > countMax && votes >= 10) {
+                consensusID = key;
+                countMax = votes;
+            }
+        }
+        return consensusID;
+    }
+
+    public void updatePhoto(Integer photo_id) throws SQLException {
+        ArrayList<Integer> species = getPhotoVotes(photo_id);
+        if (consecutiveBlanks(species)) {
+            //classifyImage()
+        }
+        if (!consensus(species).equals(new Integer(-1))) {
+            // classifyimage()
+        }
+        if (species.size() >= 25) {
+            //if (calculateEvenness(species)
+        }
+    }
+
+    static {
+//        if (speciesID == ID_NONE) {
+//            if (lastBlank)
+//                consecutiveBlanks += 1;
+//        } else {
+//            lastBlank = false;
+//            consecutiveBlanks = 0;
+//        }
+//        speciesCount.put(
+//                speciesID,
+//                speciesCount.getOrDefault(speciesID, 0) + 1
+//        );
+//        if (consecutiveBlanks >= 5) {
+//            return speciesCount;
+//        }
+    }
+
+    public ArrayList<Integer> getPhotoVotes(Integer photo_id) throws SQLException {
+        ArrayList<Integer> species = new ArrayList<Integer>();
+        String query = "SELECT species FROM animal WHERE photo_id = " + photo_id.toString() + ";";
+        ResultSet relatedPhotos = state.executeQuery(query);
+
+        while(relatedPhotos.next())
+            species.add(relatedPhotos.getInt("species"));
+
+        return species;
+    }
 
     public boolean classifyImages() {
         try {
@@ -153,46 +234,37 @@ public class Crawl {
             return false;
         }
 
-        String getAnimalInstance = "SELECT animal_id, species, person_id, gender, age, number, photo_id FROM MammalWeb.Animal WHERE classified = 0 ORDER BY animal_id"; //get photo in ascending order
+        String getAnimalInstance = "SELECT photo_id FROM MammalWeb.Animal WHERE classified = 0 ORDER BY animal_id"; //get photo in ascending order
         String getPhotos = null;
-        try{
+        try {
             ResultSet animalInstance = null;
             ResultSet countPhotoInstances = null;
             ResultSet getPhotoInstances = null;
 
-        Integer row = getRowInTable(animalInstance,InsertState);
-        animalInstance = state.executeQuery(getAnimalInstance);
-
-        animalInstance.absolute(row);
-        while (animalInstance.next()) {
-            ArrayList<Integer>species = new ArrayList<Integer>();
-            ArrayList<Integer>animalId = new ArrayList<Integer>();
-            ArrayList<Integer>personId = new ArrayList<Integer>();
-            ArrayList<Integer>gender = new ArrayList<Integer>();
-            ArrayList<Integer>age = new ArrayList<Integer>();
-            ArrayList<Integer>number = new ArrayList<Integer>();
-
-            System.out.println("Animal ID: " + animalInstance.getString("animal_id"));
-            getPhotos = "SELECT animal_id,photo_id, species, person_id, gender, age, number, photo_id FROM MammalWeb.Animal WHERE photo_id="+animalInstance.getString("photo_id");//"SELECT COUNT("+animalInstance.getString("photo_id")+")AS COUNTIMAGES FROM MammalWeb.Animal WHERE photo_id="+animalInstance.getString("photo_id");
-            getPhotoInstances = InsertState.executeQuery(getPhotos);
-            while(getPhotoInstances.next()) {
-                species.add(Integer.parseInt(getPhotoInstances.getString("species")));
-                animalId.add(Integer.parseInt(getPhotoInstances.getString("animal_id")));
-                personId.add(Integer.parseInt(getPhotoInstances.getString("person_id")));
-                gender.add(Integer.parseInt(getPhotoInstances.getString("gender")));
-                age.add(Integer.parseInt(getPhotoInstances.getString("age")));
-                number.add(Integer.parseInt(getPhotoInstances.getString("number")));
+            Integer row = getRowInTable(animalInstance, InsertState);
+            animalInstance = state.executeQuery(getAnimalInstance);
+            LinkedHashSet<Integer> photosToUpdate = new LinkedHashSet<Integer>();
+            animalInstance.absolute(row);
+            while (animalInstance.next()) {
+                photosToUpdate.add(animalInstance.getInt('photo_id'))
+//                System.out.println("Animal ID: " + animalInstance.getString("animal_id"));
+//                getPhotos = "SELECT animal_id,photo_id, species, person_id, gender, age, number, photo_id FROM MammalWeb.Animal WHERE photo_id=" + animalInstance.getString("photo_id");//"SELECT COUNT("+animalInstance.getString("photo_id")+")AS COUNTIMAGES FROM MammalWeb.Animal WHERE photo_id="+animalInstance.getString("photo_id");
+//                getPhotoInstances = InsertState.executeQuery(getPhotos);
+//                while (getPhotoInstances.next()) {
+//                    photosToUpdate.add(animalInstance.getInt("photo_id"));
+//                }
+//                Double result = calculateEvenness();
+//                if (setClassifiedFlag(animalInstance.getInt("animal_id"), updateClassifiedState)) {
+//                    System.out.println("Updated state");
+//                } else {
+//                    System.out.println("Failed");
+//                }
+//                System.out.println(result);
+//
+//                lastID = Integer.parseInt(animalInstance.getString("animal_id"));
             }
-            Double result = calculateEvenness(species);
-	    if (setClassifiedFlag(animalInstance.getInt("animal_id"), updateClassifiedState)) {
-		System.out.println("Updated state");
-	    } else {
-		System.out.println("Failed");
-	    }
-            System.out.println(result);
-            lastID = Integer.parseInt(animalInstance.getString("animal_id"));
-        }
-        writeIndex("index.txt",lastID);
+            updatePhotos(photosToUpdate);
+            writeIndex("index.txt", lastID);
         }catch(Exception e){
             return false;
         }
