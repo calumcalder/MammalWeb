@@ -35,9 +35,9 @@ public class Crawl {
             System.out.println(e.getMessage());
         }
         try {
-            String host = "jdbc:mysql://127.0.0.1:3306";
-            String uName = "";
-            String uPass = "";
+            String host = "jdbc:mysql://calum-calder.com:3306";
+            String uName = "admin3";
+            String uPass = "admin";
             con = DriverManager.getConnection(host, uName, uPass);
         } catch (SQLException err) {
             System.out.println(err.getMessage());
@@ -125,8 +125,19 @@ public class Crawl {
         return row;
     }
 
+    public boolean setClassifiedFlag(Integer animal_id, Statement state) {
+	try {
+		String queryString = "UPDATE  `MammalWeb`.`Animal` SET  `classified` =  '1' WHERE  `Animal`.`animal_id` = " + animal_id.toString() + ";";
+		state.executeUpdate(queryString);
+		return true;
+	} catch (SQLException e) {
+		e.printStackTrace();
+		return false;
+	}
+    }
 
     Statement state;
+    Statement updateClassifiedState;
     Statement InsertState;
     Integer currentIndexLimit;
     Integer lastID = null;
@@ -135,13 +146,14 @@ public class Crawl {
     public boolean classifyImages() {
         try {
             state = connectDataBase().createStatement(); //create a database connection
+	    updateClassifiedState = connectDataBase().createStatement();
             InsertState = connectDataBase().createStatement();
         } catch (SQLException ex) {
             System.out.println("SQL Error: " + ex.getMessage().toString());
             return false;
         }
 
-        String getAnimalInstance = "SELECT animal_id, species, person_id, gender, age, number, photo_id FROM MammalWeb.Animal ORDER BY animal_id"; //get photo in ascending order
+        String getAnimalInstance = "SELECT animal_id, species, person_id, gender, age, number, photo_id FROM MammalWeb.Animal WHERE classified = 0 ORDER BY animal_id"; //get photo in ascending order
         String getPhotos = null;
         try{
             ResultSet animalInstance = null;
@@ -172,6 +184,11 @@ public class Crawl {
                 number.add(Integer.parseInt(getPhotoInstances.getString("number")));
             }
             Double result = calculateEvenness(species);
+	    if (setClassifiedFlag(animalInstance.getInt("animal_id"), updateClassifiedState)) {
+		System.out.println("Updated state");
+	    } else {
+		System.out.println("Failed");
+	    }
             System.out.println(result);
             lastID = Integer.parseInt(animalInstance.getString("animal_id"));
         }
