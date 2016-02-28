@@ -35,9 +35,9 @@ public class Crawl {
             System.out.println(e.getMessage());
         }
         try {
-            String host = "jdbc:mysql://127.0.0.1:3306";
-            String uName = "";
-            String uPass = "";
+            String host = "jdbc:mysql://calum-calder.com:3306";
+            String uName = "admin3";
+            String uPass = "admin";
             con = DriverManager.getConnection(host, uName, uPass);
         } catch (SQLException err) {
             System.out.println(err.getMessage());
