@@ -24,6 +24,7 @@ public class Crawl {
     static final int ID_CONSENSUS = 10;
     static final int ID_SPECIES= 10;
     static final int ID_CONSECUTIVE = 5;
+    static final double EVENNESS_THRESHOLD = 0.3;
 
     public Connection connectDataBase() {
         Connection con = null;
@@ -183,27 +184,62 @@ public class Crawl {
         }
         return consensusID;
     }
+    
+    public Integer consensusNoMin(ArrayList<Integer> voteSpecies) {
+	HashMap<Integer,Integer>speciesCount = new HashMap<Integer,Integer>();
+        for(Integer speciesID : voteSpecies)
+            speciesCount.put(
+                    speciesID,
+                    speciesCount.getOrDefault(speciesID, 0) + 1
+            );
+        Integer consensusID = -1;
+        Integer countMax = 0;
+        for(Integer key : speciesCount.keySet()) {
+            Integer votes = speciesCount.get(key);
+            if (votes > countMax) {
+                consensusID = key;
+                countMax = votes;
+            }
+        }
+        return consensusID;   
+    }
 
     public void updatePhoto(Integer photo_id) throws SQLException {
         ArrayList<Integer> species = getPhotoVotes(photo_id);
+	
         if (consecutiveBlanks(species)) {
             classifyImage(ID_NONE, photo_id);
+	    System.out.println("photo_id: " + photo_id + "\tClassified as blank with 5 consecutive votes.");
+	    return;
         }
 	Integer option_id = consensus(species);
         if (!option_id.equals(new Integer(-1))) {
             classifyImage(option_id, photo_id);
+	    System.out.println("photo_id: " + photo_id + "\tClassified with 10 votes as: " + option_id);
+	    return;
         }
         if (species.size() >= 25) {
-            //if (calculateEvenness(species)
+	    double evenness = calculateEvenness(species);
+            if (evenness < EVENNESS_THRESHOLD) {
+	        option_id = consensusNoMin(species);
+		classifyImage(option_id, photo_id);
+		System.out.println("photo_id: " + photo_id + "\tClassified with evenness: " + evenness);
+		for (Integer id : species) { System.out.print("" + id + ", "); }
+		System.out.println("");
+		return;
+	    } else {
+		System.out.println("photo_id: " + photo_id + " flagged");
+		return;
+	    }
         }
-        System.out.println("Photo_id: "+photo_id);
+	System.out.println("photo_id: " + photo_id + "\tdoes not have enough votes to be classified");
     }
     
     public void classifyImage(Integer option_id, Integer photo_id) {
 	try {
 		String updateQuery = "UPDATE MammalWeb.Photo" + 
-		" SET classification_id=" + option_id.toString() +
-		" WHERE photo_id=" + photo_id.toString() + ";";
+				    " SET classification_id=" + option_id.toString() +
+				    " WHERE photo_id=" + photo_id.toString() + ";";
 		updateClassifiedState.executeUpdate(updateQuery);
 	} catch (Exception e) {
 		e.printStackTrace();
@@ -247,9 +283,11 @@ public class Crawl {
                 photosToUpdate.add(animalInstance.getInt("photo_id"));
                 lastID = Integer.parseInt(animalInstance.getString("animal_id"));
             }
+	    System.out.println("Calculated photos to update");
             updatePhotos(photosToUpdate);
             writeIndex("index.txt", lastID);
         }catch(Exception e){
+	    e.printStackTrace();
             return false;
         }
 
