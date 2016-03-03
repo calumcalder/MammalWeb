@@ -33,9 +33,9 @@ public class Crawl {
             System.out.println(e.getMessage());
         }
         try {
-            String host = "jdbc:mysql://127.0.0.1:3306";
-            String uName = "";
-            String uPass = "";
+            String host = "jdbc:mysql://calum-calder.com:3306";
+            String uName = "admin3";
+            String uPass = "admin";
             con = DriverManager.getConnection(host, uName, uPass);
         } catch (SQLException err) {
             System.out.println(err.getMessage());
@@ -104,7 +104,7 @@ public class Crawl {
         return 0;
     }
 
-    public Integer  getRowInTable(ResultSet animalInstance,Statement state) //convert animal_id 'index' to row number so result set can be changed to the correct
+    public Integer getRowInTable(ResultSet animalInstance,Statement state) //convert animal_id 'index' to row number so result set can be changed to the correct
     {
         Integer index = readIndex("index.txt");
         Integer row = 0;
@@ -136,6 +136,7 @@ public class Crawl {
 
     Statement state;
     Statement updateClassifiedState;
+    Statement updateXClassifiedState;
     Statement InsertState;
     Integer lastID = null;
     Integer setRow = 0;
@@ -190,18 +191,23 @@ public class Crawl {
         }
 	Integer option_id = consensus(species);
         if (!option_id.equals(new Integer(-1))) {
-            classifyimage(option_id, photo_id);
+            classifyImage(option_id, photo_id);
         }
         if (species.size() >= 25) {
             //if (calculateEvenness(species)
         }
-        System.out.println("Photo_id: "+photo_id+": "+calculateEvenness(species));
+        System.out.println("Photo_id: "+photo_id);
     }
     
     public void classifyImage(Integer option_id, Integer photo_id) {
-	String updateQuery = "INSERT INTO XClassification VALUES" +
-			     "("+option_id.toString()+", 0, "+photo_id.toString()+", CURRENT_TIMESTAMP, 0, " + option_id == ID_NONE ? "1" : "0" + ", 0)";
-	updateClassifiedState.executeUpdate(updateQuery);
+	try {
+		String updateQuery = "UPDATE MammalWeb.Photo" + 
+		" SET classification_id=" + option_id.toString() +
+		" WHERE photo_id=" + photo_id.toString() + ";";
+		updateClassifiedState.executeUpdate(updateQuery);
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
     }
 
     public ArrayList<Integer> getPhotoVotes(Integer photo_id) throws SQLException {
@@ -219,6 +225,7 @@ public class Crawl {
         try {
             state = connectDataBase().createStatement(); //create a database connection
 	    updateClassifiedState = connectDataBase().createStatement();
+	    updateXClassifiedState = connectDataBase().createStatement();
             InsertState = connectDataBase().createStatement();
         } catch (SQLException ex) {
             System.out.println("SQL Error: " + ex.getMessage().toString());
@@ -232,10 +239,10 @@ public class Crawl {
             ResultSet countPhotoInstances = null;
             ResultSet getPhotoInstances = null;
 
-            Integer row = getRowInTable(animalInstance, InsertState);
+            //Integer row = getRowInTable(animalInstance, InsertState);
             animalInstance = state.executeQuery(getAnimalInstance);
             LinkedHashSet<Integer> photosToUpdate = new LinkedHashSet<Integer>();
-            animalInstance.absolute(row);
+            //animalInstance.absolute(row);
             while (animalInstance.next()) {
                 photosToUpdate.add(animalInstance.getInt("photo_id"));
                 lastID = Integer.parseInt(animalInstance.getString("animal_id"));
