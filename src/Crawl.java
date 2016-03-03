@@ -188,7 +188,8 @@ public class Crawl {
         if (consecutiveBlanks(species)) {
             classifyImage(ID_NONE, photo_id);
         }
-        if (!(Integer option_id = consensus(species)).equals(new Integer(-1))) {
+	Integer option_id = consensus(species);
+        if (!option_id.equals(new Integer(-1))) {
             classifyimage(option_id, photo_id);
         }
         if (species.size() >= 25) {
@@ -199,7 +200,7 @@ public class Crawl {
     
     public void classifyImage(Integer option_id, Integer photo_id) {
 	String updateQuery = "INSERT INTO XClassification VALUES" +
-			     "("+option_id+", 0, "+photo_id+", CURRENT_TIMESTAMP, 0, " + option_id == ID_NONE ? 1 : 0 + ", 0)";
+			     "("+option_id.toString()+", 0, "+photo_id.toString()+", CURRENT_TIMESTAMP, 0, " + option_id == ID_NONE ? "1" : "0" + ", 0)";
 	updateClassifiedState.executeUpdate(updateQuery);
     }
 
