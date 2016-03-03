@@ -186,17 +186,22 @@ public class Crawl {
     public void updatePhoto(Integer photo_id) throws SQLException {
         ArrayList<Integer> species = getPhotoVotes(photo_id);
         if (consecutiveBlanks(species)) {
-            //classifyImage()
+            classifyImage(ID_NONE, photo_id);
         }
-        if (!consensus(species).equals(new Integer(-1))) {
-            // classifyimage()
+        if (!(Integer option_id = consensus(species)).equals(new Integer(-1))) {
+            classifyimage(option_id, photo_id);
         }
         if (species.size() >= 25) {
             //if (calculateEvenness(species)
         }
         System.out.println("Photo_id: "+photo_id+": "+calculateEvenness(species));
     }
-
+    
+    public void classifyImage(Integer option_id, Integer photo_id) {
+	String updateQuery = "INSERT INTO XClassification VALUES" +
+			     "("+option_id+", 0, "+photo_id+", CURRENT_TIMESTAMP, 0, " + option_id == ID_NONE ? 1 : 0 + ", 0)";
+	updateClassifiedState.executeUpdate(updateQuery);
+    }
 
     public ArrayList<Integer> getPhotoVotes(Integer photo_id) throws SQLException {
         ArrayList<Integer> species = new ArrayList<Integer>();
