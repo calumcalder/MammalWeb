@@ -16,8 +16,17 @@ import java.util.*;
  * Created by Stefan on 25/02/2016.
  */
 public class Crawl {
-    public Crawl()
-    {}
+    public Crawl() {
+	try {
+		state = connectDataBase().createStatement(); //create a database connection
+		updateClassifiedState = connectDataBase().createStatement();
+		updateXClassifiedState = connectDataBase().createStatement();
+		getMedianState = connectDataBase().createStatement();
+		InsertState = connectDataBase().createStatement();
+	} catch (SQLException ex) {
+		System.out.println("SQL Error: " + ex.getMessage().toString());
+	} 
+    }
 
     static final int ID_NONE = 86;
     static final int ID_HUMAN = 87;
@@ -104,6 +113,24 @@ public class Crawl {
         }
         return 0;
     }
+    
+    public Integer getMedianPlurality(Integer photo_id) throws SQLException {
+	/**
+	 * Gets the median number of different species people have classified as being in a given photo.
+	 **/
+    	String query = "SELECT COUNT(*) AS count FROM " + 
+	"(SELECT `species`, `person_id` FROM `MammalWeb`.`Animal` where photo_id=" +
+	photo_id.toString() + " " +
+	"GROUP BY `person_id`, `species`) AS GroupedVotes " +
+	"GROUP BY `person_id` ORDER BY count;";
+	ResultSet countsResultSet = getMedianState.executeQuery(query);
+	ArrayList<Integer> counts = new ArrayList<Integer>();
+	
+	while (countsResultSet.next())
+		counts.add(countsResultSet.getInt("count"));
+	
+	return counts.get((int) Math.ceil(counts.size()/2.0));
+    }
 
     public Integer getRowInTable(ResultSet animalInstance,Statement state) //convert animal_id 'index' to row number so result set can be changed to the correct
     {
@@ -138,6 +165,7 @@ public class Crawl {
     Statement state;
     Statement updateClassifiedState;
     Statement updateXClassifiedState;
+    Statement getMedianState;
     Statement InsertState;
     Integer lastID = null;
     Integer setRow = 0;
@@ -185,27 +213,37 @@ public class Crawl {
         return consensusID;
     }
     
-    public Integer consensusNoMin(ArrayList<Integer> voteSpecies) {
+    public ArrayList<Integer> consensusNoMin(ArrayList<Integer> voteSpecies, Integer count) {
 	HashMap<Integer,Integer>speciesCount = new HashMap<Integer,Integer>();
         for(Integer speciesID : voteSpecies)
             speciesCount.put(
                     speciesID,
                     speciesCount.getOrDefault(speciesID, 0) + 1
             );
-        Integer consensusID = -1;
-        Integer countMax = 0;
-        for(Integer key : speciesCount.keySet()) {
-            Integer votes = speciesCount.get(key);
-            if (votes > countMax) {
-                consensusID = key;
-                countMax = votes;
-            }
-        }
-        return consensusID;   
+	
+	return getConsensusFromSpeciesCount(speciesCount);
+    }
+    
+    public ArrayList<Integer> getConsensusFromSpeciesCount(HashMap<Integer, Integer> speciesCount, Integer count) {
+	// TODO: Unit test this
+	ArrayList<Integer> ordered = new ArrayList<Integer>(speciesCount.keys());
+	
+	Collections.sort(ordered, new Comparator<Integer>() {
+		public int compare(Integer i1, Integer i2) {
+			return speciesCount.get(i2) - speciesCount.get(i1);
+		}	
+	});
+	ArrayList<Integer> res = new ArrayList<Integer>();
+	for (int i = 0; i < count; i++) {
+		res.add(ordered.get(i));
+	}
+	
+	return res;
     }
 
     public void updatePhoto(Integer photo_id) throws SQLException {
         ArrayList<Integer> species = getPhotoVotes(photo_id);
+	Integer speciesCount = getMedianPlurality(photo_id);
 	
         if (consecutiveBlanks(species)) {
             classifyImage(ID_NONE, photo_id);
@@ -220,17 +258,8 @@ public class Crawl {
         }
         if (species.size() >= 25) {
 	    double evenness = calculateEvenness(species);
-            if (evenness < EVENNESS_THRESHOLD) {
-	        option_id = consensusNoMin(species);
-		classifyImage(option_id, photo_id);
-		System.out.println("photo_id: " + photo_id + "\tClassified with evenness: " + evenness);
-		for (Integer id : species) { System.out.print("" + id + ", "); }
-		System.out.println("");
-		return;
-	    } else {
-		System.out.println("photo_id: " + photo_id + " flagged");
-		return;
-	    }
+	    option_id = consensusNoMin(species, speciesCount);
+	    classifyImage(option_id, photo_id);
         }
 	System.out.println("photo_id: " + photo_id + "\tdoes not have enough votes to be classified");
     }
@@ -258,15 +287,7 @@ public class Crawl {
     }
 
     public boolean classifyImages() {
-        try {
-            state = connectDataBase().createStatement(); //create a database connection
-	    updateClassifiedState = connectDataBase().createStatement();
-	    updateXClassifiedState = connectDataBase().createStatement();
-            InsertState = connectDataBase().createStatement();
-        } catch (SQLException ex) {
-            System.out.println("SQL Error: " + ex.getMessage().toString());
-            return false;
-        }
+        
 
         String getAnimalInstance = "SELECT animal_id, photo_id FROM MammalWeb.Animal WHERE classified = 0 ORDER BY animal_id"; //get photo in ascending order
         String getPhotos = null;
@@ -298,7 +319,12 @@ public class Crawl {
     public static void main(String[] args)
     {
         Crawl crawl = new Crawl();
-        crawl.classifyImages();
+	try {
+		System.out.println(crawl.getMedianPlurality(200));
+	} catch (Exception e) {
+		e.printStackTrace();
+	}
+        //crawl.classifyImages();
 
         return;
     }
