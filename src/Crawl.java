@@ -286,10 +286,16 @@ public class Crawl {
         try {
 //        	System.out.println(crawl.getMedianPlurality(10000));
 	        //crawl.updatePhoto(160);
+		Settings s = new Settings(crawl.connectDataBase());
+		s.getNewSettings();
+		System.out.println(s.getMinConsensusCount());
         } catch (Exception e) {
         	e.printStackTrace();
         }
-        crawl.classifyImages();
+        //crawl.classifyImages();
+	
+	
+	
     }
 
 }
@@ -319,3 +325,51 @@ class DefaultHashMap<K, V> extends HashMap<K, V> {
 	}
 	
 }
+
+class Settings{
+	
+	private Integer minConsensusCount = 0;
+	private Integer runFrequency = 0;
+	private boolean runFlag = false;
+	private Connection con;
+	private Statement statement;
+	
+	private static final int SETTING_CONSENSUSCOUNT = 1;
+	private static final int SETTING_RUNFREQUENCY = 2;
+	private static final int SETTING_RUNFLAG = 3;
+	
+	public Settings(Connection con) throws SQLException {
+		this.con = con;
+		this.statement = con.createStatement();
+	};
+	
+	public Integer getMinConsensusCount(){ //get minimum consensus for count
+		return minConsensusCount;
+	}
+	public Integer getRunFrequency(){ //get interval check frequency
+		return runFrequency;
+	}
+	public boolean getRunFlag(){ //get running flag for dashboard run and stop...
+		return runFlag;
+	}
+	
+	public void getNewSettings() throws SQLException {
+		String querySettings = "SELECT setting_id, setting_name, setting_value FROM MammalWeb.CrawlerSettings"; //fixed.
+		
+		ResultSet settings = statement.executeQuery(querySettings); 
+		while(settings.next()){
+			switch (settings.getInt("setting_id")) {
+				case SETTING_CONSENSUSCOUNT:
+					minConsensusCount = settings.getInt("setting_value");
+					break;
+				case SETTING_RUNFREQUENCY:
+					runFrequency = settings.getInt("setting_value");
+					break;
+				case SETTING_RUNFLAG:
+					runFlag = settings.getBoolean("setting_value");
+					break;
+			}
+		}
+	}
+}
+
