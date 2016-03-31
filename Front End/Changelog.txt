@@ -1,0 +1,22 @@
+23 December 2015
+- created index.php
+- implemented Bootstrap core
+
+24 December 2015
+- implemented 'System Status' core framework
+- implemented 'Statistics' core framework
+- implemented jQuery/PHP communication interface
+- added bottom navbar for 'Help', 'About' and 'Copyright'
+
+25 December 2015
+- implemented 'Security' core framework
+- implemented control buttons to start, pause and stop the system
+
+26 December 2015
+- created MySQL database on personal MySQL account at mysql.dur.ac.uk
+- implemented PHP mysqli interface to communicate with the database
+- added a table row in 'System Status' to show whether the database was online or offline
+- updated 'Security' to get current operator's e-mail and ID
+- implemented a password update system with e-mail notifications
+- implemented an e-mail address update system
+- implemented notifications to old and new e-mail addresses on update
