@@ -1,4 +1,5 @@
 <?php
+include("../sql.php");
 $status = 1;
 ?>
 
@@ -40,7 +41,11 @@ $status = 1;
         <li class="active"><a href="/andrew.taylor/mw/settings"><span class="glyphicon glyphicon-wrench"></span>&nbsp &nbsp System Parameters</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        <li><a href="#"><span class="glyphicon glyphicon-log-in"></span>&nbsp &nbsp Login</a></li>
+        <li>
+		  <a href="/andrew.taylor/mw/logout.php">
+                <span class="glyphicon glyphicon-log-out"></span>&nbsp &nbsp Logout (<?php echo($currentOperatorEmail); ?>)
+           </a>
+		</li>
       </ul>
     </div>
   </div>

@@ -37,7 +37,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (isset($_POST["rawSQL"])) {
 
 	
-        $rawSQLQuery = clean($_POST["rawSQL"]);
+        $rawSQLQuery = clean($_POST["rawSQL"]) . " " . clean($_POST["rawSQLLimit"]);
 		if(strpos(strtolower($rawSQLQuery), "delete") !== false || strpos(strtolower($rawSQLQuery), "drop") !== false || strpos(strtolower($rawSQLQuery), "insert") !== false || strpos(strtolower($rawSQLQuery), "update") !== false) { //Banned queries
 			echo("Query blocked. You entered a forbidden command.");
 		}

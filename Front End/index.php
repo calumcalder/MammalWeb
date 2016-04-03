@@ -108,7 +108,7 @@ if ($days > 0)
           <ul class="nav navbar-nav navbar-right">
             <li>
               <a href="/andrew.taylor/mw/logout.php">
-                <span class="glyphicon glyphicon-log-out"></span>&nbsp &nbsp Logout
+                <span class="glyphicon glyphicon-log-out"></span>&nbsp &nbsp Logout (<?php echo($currentOperatorEmail); ?>)
               </a>
             </li>
           </ul>

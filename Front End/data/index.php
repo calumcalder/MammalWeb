@@ -49,7 +49,7 @@ $status = 1;
       <ul class="nav navbar-nav navbar-right">
         <li>
 		  <a href="/andrew.taylor/mw/logout.php">
-             <span class="glyphicon glyphicon-log-out"></span>&nbsp &nbsp Logout
+                <span class="glyphicon glyphicon-log-out"></span>&nbsp &nbsp Logout (<?php echo($currentOperatorEmail); ?>)
            </a>
 		</li>
       </ul>
@@ -69,8 +69,16 @@ $status = 1;
 				<!-- Start Here for Queries -->
 				<form id="queries" action = "generator.php" method="post">
 					<fieldset class="form-group">
-						<label for="rawSQL">Raw SQL Query</label>
+					  <div class="row">
+					    <div class="form-group col-sm-10">
+						<label for="rawSQL">Raw SQL query</label>
 						<input type="text" class="form-control" id="rawSQL" name="rawSQL" placeholder="Example: SELECT COUNT(*) from Animal">
+						</div>
+						<div class="form-group col-sm-2">
+						<label for="rawSQLLimit">Range to view</label>
+						<input type="text" class="form-control" id="rawSQLLimit" name="rawSQLLimit" placeholder="LIMIT 0, 30" value="LIMIT 0, 30">
+						</div>
+						</div>
 						<small class="text-muted">DELETE, DROP, INSERT INTO and UPDATE queries are disabled for security purposes.</small>
 					</fieldset>
 					<button type="submit" class="btn btn-primary">Submit</button>
