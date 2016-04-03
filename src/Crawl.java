@@ -17,25 +17,31 @@ import java.util.*;
  */
 public class Crawl {
 
+    static final int ID_NONE = 86;
+    static final int ID_HUMAN = 87;
+    static final int ID_JUVENILE = 6;
+    static final int ID_ADULT = 5;
+    static final int ID_MALE = 4;
+    static final int ID_FEMALE = 3;
+    static final int ID_AGE_UNKNOWN = 85;
+    private Settings settings;
+    Statement state;
+    Statement updateClassifiedState;
+    Statement getMedianState;
+    
     public Crawl() {
         try {
             state = connectDataBase().createStatement(); //create a database connection
             updateClassifiedState = connectDataBase().createStatement();
-            updateXClassifiedState = connectDataBase().createStatement();
             getMedianState = connectDataBase().createStatement();
-            InsertState = connectDataBase().createStatement();
+	    
+	    settings = new Settings(connectDataBase());
+	    settings.getNewSettings();
         } catch (SQLException ex) {
             System.out.println("SQL Error: " + ex.getMessage().toString());
         }
     }
-
-    static final int ID_NONE = 86;
-    static final int ID_HUMAN = 87;
-    static final int ID_CONSENSUS = 10;
-    static final int ID_SPECIES= 10;
-    static final int ID_CONSECUTIVE = 5;
-    static final double EVENNESS_THRESHOLD = 0.3;
-
+    
     public Connection connectDataBase() {
         /**
          * Initialises the connection to the database.
@@ -47,9 +53,9 @@ public class Crawl {
             System.out.println(e.getMessage());
         }
         try {
-            String host = "jdbc:mysql://127.0.0.1:3306";
-            String uName = "root";
-            String uPass = "";
+            String host = "jdbc:mysql://calum-calder.com";
+            String uName = "admin3";
+            String uPass = "admin";
             con = DriverManager.getConnection(host, uName, uPass);
         } catch (SQLException err) {
             System.out.println(err.getMessage());
@@ -61,7 +67,7 @@ public class Crawl {
         /**
          * Calculates the evenness of a given set of votes.
          **/
-        DefaultHashMap<Integer,Integer>temp = new DefaultHashMap<Integer,Integer>();//get frequencies
+        DefaultHashMap<Integer,Integer>temp = new DefaultHashMap<Integer,Integer>();
         for(Integer speciesID : species) {
             temp.put(speciesID, temp.getOrDefault(speciesID, 0) + 1);
         }
@@ -79,7 +85,6 @@ public class Crawl {
         evenness = (-numerator) / Math.log(species.size());
 
         return evenness;
-
     }
 
     public Integer getMedianPlurality(Integer photo_id) throws SQLException {
@@ -113,16 +118,8 @@ public class Crawl {
         while (countsResultSet.next())
             counts.add(countsResultSet.getInt("count"));
 
-        return counts.get((int) Math.ceil((counts.size() - 1)/2.0));
+        return counts.get((int) Math.ceil((counts.size() - 1)/2.0)); // Median value, taking upper median for off size array
     }
-
-    Statement state;
-    Statement updateClassifiedState;
-    Statement updateXClassifiedState;
-    Statement getMedianState;
-    Statement InsertState;
-    Integer lastID = null;
-    Integer setRow = 0;
 
     public void updatePhotos(Set<Integer> photosToUpdate) throws SQLException {
         /**
@@ -159,7 +156,6 @@ public class Crawl {
          * Calculates the consensus of votes, taking in to account the minimum 10 votes requirement.
          **/
         DefaultHashMap<Integer,Integer> speciesCount = new DefaultHashMap<Integer,Integer>();
-        Integer cur = 0;
         for(Integer speciesID : voteSpecies) {
             speciesCount.put(speciesID, speciesCount.getOrDefault(speciesID, 0) + 1);
         }
@@ -177,7 +173,7 @@ public class Crawl {
          * Calculates the consensus of votes, ignoring the minimum 10 votes requirement.
          **/
         DefaultHashMap<Integer,Integer>speciesCount = new DefaultHashMap<Integer,Integer>();
-        Integer cur;
+	
         for(Integer speciesID : voteSpecies) {
             speciesCount.put(speciesID, speciesCount.getOrDefault(speciesID, 0) + 1);
         }
@@ -185,13 +181,13 @@ public class Crawl {
         return getConsensusFromSpeciesCount(speciesCount, count);
     }
 
-    public ArrayList<Integer> getConsensusFromSpeciesCount(HashMap<Integer, Integer> speciesCount, Integer count) {
+    public ArrayList<Integer> getConsensusFromSpeciesCount(HashMap<Integer, Integer> countMap, Integer count) {
         /**
          * Calculates the top <count> classifications from a count of each species vote.
          **/
-        ArrayList<Integer> ordered = new ArrayList<Integer>(speciesCount.keySet());
-
-        Collections.sort(ordered, new CountComparator(speciesCount));
+        ArrayList<Integer> ordered = new ArrayList<Integer>(countMap.keySet());
+        Collections.sort(ordered, new CountComparator(countMap));
+	
         ArrayList<Integer> res = new ArrayList<Integer>();
         for (int i = 0; i < count; i++) {
             res.add(ordered.get(i));
@@ -199,26 +195,74 @@ public class Crawl {
 
         return res;
     }
+    
+    public ArrayList<Integer> calculateAges(ClassificationMatrix classMatrix, ArrayList<Integer> species_classifications) {
+	/**
+	 * Calculates the ages of given classifications from a classification matrix.
+	 **/
+	
+	ArrayList<Integer> ages = new ArrayList<Integer>();
+	for (Integer species : species_classifications) {
+            ages.add(calculateAge(classMatrix, species));
+	}
+	
+	return ages;
+    }
+    
+    public Integer calculateAge(ClassificationMatrix classMatrix, Integer species) {
+	ArrayList<Integer> species_ids = classMatrix.getSpecies();
+	ArrayList<Integer> age_ids = classMatrix.getAges();
+	ArrayList<Integer> ages = new ArrayList<Integer>();
+	for (int i = 0; i < species_ids.size(); i++) {
+		if (species_ids.get(i).equals(species)) {
+			ages.add(age_ids.get(i));
+		}
+	}
+	
+	// Count each age vote
+	DefaultHashMap<Integer,Integer> agesCounter = new DefaultHashMap<Integer,Integer>();
+        for(Integer age: ages) {
+            agesCounter.put(age, agesCounter.getOrDefault(age, 0) + 1);
+        }
+	
+	int voteCount = ages.size();
+	Integer minCount = (int) (settings.getMinAgeProportion()*voteCount);
+	Integer juvenileCount = agesCounter.getOrDefault(ID_JUVENILE, 0);
+	Integer adultCount = agesCounter.getOrDefault(ID_ADULT, 0);
+	
+	if (juvenileCount > minCount && juvenileCount > adultCount) {
+		return ID_JUVENILE;
+	} else if (adultCount > minCount) {
+		return ID_ADULT;
+	} else {
+		return ID_AGE_UNKNOWN;
+	}
+	
+    }
 
     public void updatePhoto(Integer photo_id) throws SQLException {
         /**
          * Updates a given photo.
          * Calculates consecutive blanks, consensus or evenness for the photo and updates database accordingly.
          **/
-        ArrayList<Integer> species = getPhotoVotes(photo_id);
+        ClassificationMatrix classMatrix = getPhotoVotes(photo_id);
+	ArrayList<Integer> species = classMatrix.getSpecies();
+	ArrayList<Integer> ages = classMatrix.getAges();
+	ArrayList<Integer> genders = classMatrix.getGenders();
+	
         Integer speciesCount = getMedianPlurality(photo_id);
         Integer numberOfAnimals = getMedianNoAnimals(photo_id);
         ArrayList<Integer> option_ids;
 
         if (consecutiveBlanks(species)) {
             option_ids = new ArrayList<Integer>() {{ this.add(ID_NONE); }};
-            classifyImage(option_ids, photo_id);
+            classifyImage(option_ids, option_ids, photo_id);
             return;
         }
 
         option_ids = consensus(species, speciesCount);
         if (!option_ids.contains(new Integer(-1))) {
-            classifyImage(option_ids, photo_id);
+            classifyImage(option_ids, calculateAges(classMatrix, option_ids), photo_id);
             return;
         }
 
@@ -226,6 +270,9 @@ public class Crawl {
         if (species.size() >= 25) {
             double evenness = calculateEvenness(species);
             setEvenness(evenness, photo_id);
+	    if (evenness > settings.getEvennessThreshold()) {
+		classifyImage(option_ids, calculateAges(classMatrix, option_ids), photo_id);
+	    }
             return;
         }
         System.out.println("photo_id: " + photo_id + "\tdoes not have enough votes to be classified");
@@ -239,15 +286,16 @@ public class Crawl {
         updateClassifiedState.executeUpdate(updateQuery);
     }
 
-    public void classifyImage(ArrayList<Integer> option_ids, Integer photo_id) {
+    public void classifyImage(ArrayList<Integer> option_ids, ArrayList<Integer> age_ids, Integer photo_id) {
         /**
          * Classifies a given image with a set of classifications
          **/
         try {
-            for (Integer option_id : option_ids) {
-                String blanks = option_id == ID_NONE ? "1" : "0";
-                String updateQuery = "INSERT INTO `MammalWeb`.`XClassification`(`person_id`, `photo_id`, `humans`, `nothing`, `species`)" +
-                        "VALUES (-1," + photo_id.toString() + ",0," + blanks + "," + option_id.toString() + ")";
+            for (int i = 0; i < option_ids.size(); i++) {
+		Integer gender = 1; // TODO: remove
+                String updateQuery = 
+			"INSERT INTO `MammalWeb`.`XClassification`(`photo_id`, `species`, `age`, `gender`)" +
+                        "VALUES (" + photo_id.toString() + "," + option_ids.get(i) + ',' + age_ids.get(i) + ',' + gender.toString() + ")";
                 updateClassifiedState.executeUpdate(updateQuery);
             }
         } catch (Exception e) {
@@ -255,18 +303,23 @@ public class Crawl {
         }
     }
 
-    public ArrayList<Integer> getPhotoVotes(Integer photo_id) throws SQLException {
+    public ClassificationMatrix getPhotoVotes(Integer photo_id) throws SQLException {
         /**
          * Gets a list of votes on a given photo
          **/
         ArrayList<Integer> species = new ArrayList<Integer>();
-        String query = "SELECT species FROM MammalWeb.Animal WHERE photo_id = " + photo_id.toString() + ";";
+        ArrayList<Integer> ages = new ArrayList<Integer>();
+        ArrayList<Integer> genders = new ArrayList<Integer>();
+        String query = "SELECT species, gender, age FROM MammalWeb.Animal WHERE photo_id = " + photo_id.toString() + ";";
         ResultSet relatedPhotos = state.executeQuery(query);
 
-        while(relatedPhotos.next())
+        while(relatedPhotos.next()) {
             species.add(relatedPhotos.getInt("species"));
+            ages.add(relatedPhotos.getInt("age"));
+            genders.add(relatedPhotos.getInt("gender"));
+	}
 
-        return species;
+        return new ClassificationMatrix(species, ages, genders);
     }
 
     public boolean classifyImages() {
@@ -299,20 +352,7 @@ public class Crawl {
     public static void main(String[] args)
     {
         Crawl crawl = new Crawl();
-        try {
-            //System.out.println(crawl.getMedianNoAnimals(0));
-//        	System.out.println(crawl.getMedianPlurality(10000));
-            //crawl.updatePhoto(160);
-           // Settings s = new Settings(crawl.connectDataBase());
-           // s.getNewSettings();
-            //System.out.println(s.getMinConsensusCount());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
         crawl.classifyImages();
-
-
-
     }
 
 }
@@ -329,7 +369,8 @@ class CountComparator implements Comparator<Integer> {
     }
 
 }
-class  DefaultHashMap<K, V> extends HashMap<K, V> {
+
+class DefaultHashMap<K, V> extends HashMap<K, V> {
     public V getOrDefault(K key, V def) {
         V get = this.get(key);
 
@@ -341,18 +382,48 @@ class  DefaultHashMap<K, V> extends HashMap<K, V> {
 
 }
 
+class ClassificationMatrix {
+	private ArrayList<Integer> species_ids;
+	private ArrayList<Integer> age_ids;
+	private ArrayList<Integer> gender_ids;
+	
+	public ClassificationMatrix(ArrayList<Integer> species_ids, ArrayList<Integer> age_ids, ArrayList<Integer> gender_ids) {
+		this.species_ids = species_ids;
+		this.age_ids = age_ids;
+		this.gender_ids = gender_ids;
+	}
+	
+	public ArrayList<Integer> getSpecies() {
+		return this.species_ids;
+	}
+	
+	public ArrayList<Integer> getAges() {
+		return this.age_ids;
+	}
+	
+	public ArrayList<Integer> getGenders() {
+		return this.gender_ids;
+	}
+}
+
 class Settings{
 
     private Integer minConsensusCount = 0;
     private Integer runFrequency = 0;
+    private Integer maxVotes = 0;
     private boolean runFlag = false;
+    private Double minAgeProportion = 0.4;
+    private Double evennessThreshold = 0.4;
     private Connection con;
     private Statement statement;
 
     private static final int SETTING_CONSENSUSCOUNT = 1;
     private static final int SETTING_RUNFREQUENCY = 2;
     private static final int SETTING_RUNFLAG = 3;
-
+    private static final int SETTING_MINAGEPROPORTION = 4; 
+    private static final int SETTING_EVENNESS_THRESHOLD = 5;
+    private static final int SETTING_MAX_VOTES = 6;
+    
     public Settings(Connection con) throws SQLException {
         this.con = con;
         this.statement = con.createStatement();
@@ -367,9 +438,18 @@ class Settings{
     public boolean getRunFlag(){ //get running flag for dashboard run and stop...
         return runFlag;
     }
+    public double getMinAgeProportion() {
+	return minAgeProportion/100.0;    
+    }
+    public double getEvennessThreshold() {
+	return evennessThreshold/100.0;    
+    }
+    public int getMaxVotes() {
+	return maxVotes;    
+    }
 
     public void getNewSettings() throws SQLException {
-        String querySettings = "SELECT setting_id, setting_name, setting_value FROM MammalWeb.CrawlerSettings"; //fixed.
+        String querySettings = "SELECT setting_id, setting_value FROM MammalWeb.CrawlerSettings";
 
         ResultSet settings = statement.executeQuery(querySettings);
         while(settings.next()){
@@ -383,6 +463,9 @@ class Settings{
                 case SETTING_RUNFLAG:
                     runFlag = settings.getBoolean("setting_value");
                     break;
+		case SETTING_MINAGEPROPORTION:
+		    minAgeProportion = settings.getDouble("setting_value");
+		    break;
             }
         }
     }
