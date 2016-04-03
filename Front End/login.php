@@ -72,7 +72,7 @@
       <form class="form-signin" name="form1" method="post" action="authenticate.php">
        <h2 class="form-signin-heading">Please sign in</h2>
         <label for="inputEmail" class="sr-only">E-mail address</label>
-        <input type="email" name = "myusername" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
+	<input type="email" name = "myusername" value="<?php echo $_GET['inputEmail'] ?>" id="inputEmail" class="form-control" placeholder="Email address" required autofocus>
         <br>
         <label for="inputPassword" class="sr-only">Password</label>
         <input type="password" name = "mypassword" id="inputPassword" class="form-control" placeholder="Password" required>

@@ -1,35 +1,47 @@
 <?php
 ob_start();
 session_start();
-$host="mysql.dur.ac.uk"; // Host name
-$username="hqtn87"; // Mysql username
-$password="ro78man"; // Mysql password
-$db_name="Phqtn87_mammalweb"; // Database name
-$tbl_name="operator"; // Table name
-
-// Connect to server and select databse.
-mysql_connect("$host", "$username", "$password")or die("cannot connect");
-mysql_select_db("$db_name")or die("cannot select DB");
+include("sql.php");
 
 // username and password sent from form
 $myusername=$_POST['myusername'];
 $mypassword=$_POST['mypassword'];
 
-// To protect MySQL injection attacks
-$myusername = stripslashes($myusername);
-$mypassword = stripslashes($mypassword);
-$myusername = mysql_real_escape_string($myusername);
-$mypassword = mysql_real_escape_string($mypassword);
+// Cleans data to mitigate SQL injection attacks
+function clean($data)
+{
+    $data = trim($data);
+    $data = stripslashes($data);
+    $data = htmlspecialchars($data);
+    return $data;
+}
 
-$sql="SELECT * FROM $tbl_name WHERE email='$myusername' and password='$mypassword'";
-$result=mysql_query($sql);
+// Time constant string comparison function to mitigate timing attacks
+function hashCompare($string1, $string2)
+{
+    if (strlen($string1) !== strlen($string2)) {
+        return false;
+    }
+    $result = 0;
+    for ($i = 0; $i < strlen($string1); $i++) {
+        $result |= ord($string1[$i]) ^ ord($string2[$i]);
+    }
+    return $result == 0;
+}
 
-// Mysql_num_row is counting table row
-$count=mysql_num_rows($result);
+$sql = "SELECT * FROM operator WHERE email='$myusername'";
+$result = $sqlConnection->query($sql);
+$success = False;
 
-// If result matched $myusername and $mypassword, table row must be 1 row
+if ($result->num_rows > 0) {
+	$row = $result->fetch_assoc();
+	$salt = $row["salt"];
+	// Get hashed password using SHA-512 with 5000 iterations
+	$encryptedSaltedPass = substr(crypt($mypassword, '$6$rounds=5000$'.$salt.'$'), -86);
+	$success = hashCompare($encryptedSaltedPass, $row["password"]);
+}
 
-if($count==1){
+if($success==True){
 
 // Set sesion variables
 $_SESSION['myusername'] = $myusername;
@@ -37,7 +49,7 @@ $_SESSION['mypassword'] = $mypassword;
 header("location:index.php");
 }
 else {
-header("location:login.php?loginAttempt=1");
+header("location:login.php?loginAttempt=1&inputEmail=$myusername");
 }
 ob_end_flush();
 ?>
