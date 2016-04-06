@@ -109,7 +109,7 @@ $status = 1;
 									maxPhoto:$("#maxPhoto").val()
 									},
 							success: function (result) {
-									alert(result);
+								
 							}
 							});     
 						  });
