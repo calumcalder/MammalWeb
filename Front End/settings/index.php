@@ -55,6 +55,7 @@ $status = 1;
 		<li class="active"><a data-toggle="pill" href="#home">System Status</a></li>
 		<li><a data-toggle="pill" href="#menu1">Statistics</a></li>
 		<li><a data-toggle="pill" href="#menu2">Security</a></li>
+		<li><a data-toggle="pill" href="#menu3">Crawler Settings</a></li>
 		</ul>
 
 		<div class="tab-content">
@@ -91,6 +92,73 @@ $status = 1;
 			<div id="menu2" class="tab-pane fade">
 				<h3>Security</h3>
 				<p>...</p>
+			</div>
+			<div id="menu3" class="tab-pane fade">
+				<h3>Settings</h3>
+				<script> <!-- AJAX function for Crawler settings!>
+					$(document).ready(function(){ 
+						$("#submit").click(function(){
+						 $.ajax({
+							url: "settings.php",
+							type: "POST",
+							data: { consensusCount:$("#consensusCount").val(),
+									runFlag:$("#runFlag").val(),
+									runFrequency:$("#runFrequency").val(),
+									minAge:$("#minAge").val(),
+									evennessThres:$("#evennessThres").val(),
+									maxPhoto:$("#maxPhoto").val()
+									},
+							success: function (result) {
+									alert(result);
+							}
+							});     
+						  });
+						});
+				</script>
+					<?php 
+					$resultSettings = $sqlConnection->query("SELECT setting_name, setting_value FROM CrawlerSettings"); 
+					if ($resultSettings->num_rows > 0) {
+						$row = $resultSettings->fetch_assoc();
+						$keys= array_keys($row);
+						echo('<fieldset class="form-group">');
+							echo('<div class="row">');
+								echo('<div class="form-group col-sm-2">');
+									echo('<label for="consensusCount">'.$row[$keys[0]].'</label>');
+									echo('<input type="text" class="form-control" id="consensusCount" name="consensusCount" value="'.$row[$keys[1]].'"> ');
+								echo('</div>');
+								$row = $resultSettings->fetch_assoc();
+								echo('<div class="form-group col-sm-2">');
+									echo('<label for="runFlag">'.$row[$keys[0]].'</label>');
+									echo('<input type="text" class="form-control" id="runFlag" name="runFlag" value="'.$row[$keys[1]].'">');
+								echo('</div>');
+								$row = $resultSettings->fetch_assoc();
+								echo('<div class="form-group col-sm-2">');
+									echo('<label for="runFrequency">'.$row[$keys[0]].'</label>');
+									echo('<input type="text" class="form-control" id="runFrequency" name="runFrequency" value="'.$row[$keys[1]].'">');
+								echo('</div>');
+							echo('</div>');
+							echo('<div class="row">');
+								$row = $resultSettings->fetch_assoc();
+								echo('<div class="form-group col-sm-2">');
+									echo('<label for="minAge">'.$row[$keys[0]].'</label>');
+									echo('<input type="text" class="form-control" id="minAge" name="minAge" value="'.$row[$keys[1]].'"> ');
+								echo('</div>');
+								$row = $resultSettings->fetch_assoc();
+								echo('<div class="form-group col-sm-2">');
+									echo('<label for="evennessThres">'.$row[$keys[0]].'</label>');
+									echo('<input type="text" class="form-control" id="evennessThres" name="evennessThres" value="'.$row[$keys[1]].'">');
+								echo('</div>');
+								$row = $resultSettings->fetch_assoc();
+								echo('<div class="form-group col-sm-2">');
+									echo('<label for="maxPhoto">'.$row[$keys[0]].'</label>');
+									echo('<input type="text" class="form-control" id="maxPhoto" name="maxPhoto" value="'.$row[$keys[1]].'">');
+								echo('</div>');
+							echo('</div>');
+						echo('</fieldset>');
+						
+						echo('<button type="submit" id="submit" class="btn btn-primary">Update Settings</button>');
+					}?>
+					
 			</div>
 		</div>
 
