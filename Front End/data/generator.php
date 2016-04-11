@@ -13,6 +13,7 @@ session_start();
   <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
   <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+  <script src="JSONtoCSV.js"></script>
   <script>
     $(document).ready(function() {
       $('[data-toggle="tooltip"]').tooltip();
@@ -57,6 +58,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 									<thead>
 										<tr>
 											<?php
+
+												
 												if ($rawSQLResult->num_rows > 0) {
 													$row = $rawSQLResult->fetch_assoc();
 												$keys= array_keys($row);
@@ -84,7 +87,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 												?>
 										</tbody>
 								</table>
+								<script> <!--Export to CSV function-->
+									$(document).ready(function(){
+									$("#ExportCSV").click(function(){
+												$.ajax({
+										url: "csv.php",
+										type: "POST",
+										data: { query: "<?php echo ($rawSQLQuery);?>"},
+										success: function (result) {
+												JSONToCSVConvertor(result,"data",true);
+										}
+										});     
+									});
+								   });
+								 
+								</script>
 								<input type="button" class="button btn btn-success" name="printWindow" onclick="window.print();" value="Print" />
+								<input type="button" class="button btn btn-success" name="exportCSV" id="ExportCSV" value="Export to CSV" />
 							</div>
 						</div>
 					</div>
@@ -216,6 +235,7 @@ function clean($data)
 <footer>
 <div class="pull-right">
 		<?php
+		
 		if(!session_is_registered(myusername)){
 			echo("P.S. Oh, if you're tryin' to hit on me, it looks silly if you haven't <a href='../login.php'>logged in</a> first ;)");
 		}
