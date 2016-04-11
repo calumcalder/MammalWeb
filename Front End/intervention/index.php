@@ -1,6 +1,15 @@
 <?php
 include("../sql.php");
 $status = 1;
+
+function getProblemImages($evenness) {
+	global $sqlConnection;
+	$query = "SELECT * FROM `Photo` WHERE evenness >= $evenness AND photo_id NOT IN (SELECT photo_id FROM XClassification) LIMIT 0, 100;";
+	return $sqlConnection->query($query);
+}
+
+$evenness = isset($_GET['evenness']) ? $_GET['evenness'] : "0.6";
+$problem_images = getProblemImages($evenness);
 ?>
 
 <html>
@@ -9,6 +18,42 @@ $status = 1;
 .nothingFancy {
 	text-decoration:none;
 	color: green;
+}
+
+.header {
+	margin-top: 10px;
+}
+
+.slider-container {
+	display: inline-block;
+	width: calc(100% - 305px);
+}
+.slider-refresh {
+	float: right;
+	margin-top: -5px;
+}
+.slider-description {
+	display: inline-block;
+	position: relative;
+	top: -7px;
+	padding-right: 10px;
+}
+.evenness-range-label {
+	display: inline-block;
+	position: relative;
+	top: -5;
+	width: 40px;
+}
+
+
+#photo-id-input {
+	background:none!important;
+	border:none; 
+	padding:0!important;
+	font: inherit;
+	cursor: pointer;
+	text-align: left;
+	width: 100%;
 }
 </style>
 <head>
@@ -42,47 +87,61 @@ $status = 1;
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
-		  <a href="/andrew.taylor/mw/logout.php">
-                <span class="glyphicon glyphicon-log-out"></span>&nbsp &nbsp Logout (<?php echo($currentOperatorEmail); ?>)
-           </a>
-		</li>
+	  <a href="/andrew.taylor/mw/logout.php">
+	    <span class="glyphicon glyphicon-log-out"></span>&nbsp &nbsp Logout (<?php echo($currentOperatorEmail); ?>)
+   	  </a>
+	</li>
       </ul>
     </div>
   </div>
 </nav>
 
 		<ul class="nav nav-tabs">
-		<li class="active"><a data-toggle="pill" href="#home">System Status</a></li>
+		<li class="active"><a data-toggle="pill" href="#home">Problem Images</a></li>
 		<li><a data-toggle="pill" href="#menu1">Statistics</a></li>
 		<li><a data-toggle="pill" href="#menu2">Security</a></li>
 		</ul>
 
 		<div class="tab-content">
 			<div id="home" class="tab-pane fade in active">
- 				<h3>System Status</h3>
-				<ul class="list-group">
-<?php if ($status == 0): ?>
-<div class="alert alert-danger">
-<strong>Major Error!</strong> The system is not running.
-</div>
-<?php elseif ($status == 1): ?>
-<div class="alert alert-success">
-<strong>Fully Operational.</strong> All systems are active and running.
-</div>
-<?php elseif ($status == 2): ?>
-<div class="alert alert-warning">
-<strong>Warning.</strong> There are currently active system warnings.
-</div>
-<?php elseif ($status == 3): ?>
-<div class="alert alert-info">
-<strong>Development.</strong> The system is currently being developed and is not yet active.
-</div>
-<?php endif; ?>
+				<div class="alert alert-info header">
+				Click on an image ID below to be taken to the processing page. Move the slider to change the minimum threshold for image evenness to filter images.
+				</div>
+				<form class="evenness-slider-form">
+					<div class="slider-description">
+					Minimum Evenness Score:
+					</div>
+					<div class="slider-container">
+					<input name="evenness" id="evenness-slider" value="<?php echo $evenness ?>" class="evenness-slider" type="range" min="0" max="1" step="0.025"> </input>
+					<script>
+					var slider = document.getElementById('evenness-slider')
+					slider.oninput = slider.onchange = function() {document.getElementById('evenness-label').innerHTML = this.value}
+					</script>
+					</div>
+					<div class="evenness-range-label" id="evenness-label"> <?php echo $evenness ?> </div>
+					<input type="submit" class="slider-refresh btn btn-default" value="Refresh"></input>
+				</form>
 
-					<li class="list-group-item"><b>Operational status code:</b> <?php echo $status ?></li>
-					<li class="list-group-item"><b>System time: </b><?php echo date("h.i A")?></li>
-					<li class="list-group-item"><b>System time zone:</b> <?php echo date("T"); ?></li>
-				</ul>
+				<table class="image-table table table-hover">
+				<thead>
+					<th>Photo ID</th>
+					<th>Evenness</th>
+				</thead>
+				<tbody>
+					<?php
+					while ($row = $problem_images->fetch_assoc()) {
+						$photo_id = $row['photo_id'];
+						$evenness = $row['evenness'];
+						echo "<tr>";
+						echo "<td><form action='../data/generator.php' target='_blank' method='post'>";
+						echo "	    <input id='photo-id-input' type='submit' name='imageID' value='$photo_id' />";
+						echo "</form></td>";
+						echo "<td>$evenness</td>";
+						echo "</tr>";
+					}
+					?>
+				</tbody>
+				</table>
 			</div>
 			<div id="menu1" class="tab-pane fade">
  				<h3>Statistics</h3>
