@@ -87,7 +87,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 												?>
 										</tbody>
 								</table>
-								<script> <!--Export to CSV function-->
+								<script> <!--Export to CSV function AJAX-->
 									$(document).ready(function(){
 									$("#ExportCSV").click(function(){
 												$.ajax({
