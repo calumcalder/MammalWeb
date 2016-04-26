@@ -35,14 +35,14 @@ $status = 1;
     </div>
     <div>
       <ul class="nav navbar-nav">
-        <li><a href="/andrew.taylor/mw"><span class="glyphicon glyphicon-th"></span>&nbsp &nbsp Core Operations</a></li>
-        <li><a href="/andrew.taylor/mw/intervention"><span class="glyphicon glyphicon-alert"></span>&nbsp &nbsp Classification Intervention</a></li>
-        <li><a href="/andrew.taylor/mw/data"><span class="glyphicon glyphicon-hdd"></span>&nbsp &nbsp Data Management</a></li>
+        <li><a href="/stefan.pawliszyn/mw"><span class="glyphicon glyphicon-th"></span>&nbsp &nbsp Core Operations</a></li>
+        <li><a href="/stefan.pawliszyn/mw/intervention"><span class="glyphicon glyphicon-alert"></span>&nbsp &nbsp Classification Intervention</a></li>
+        <li><a href="/stefan.pawliszyn/mw/data"><span class="glyphicon glyphicon-hdd"></span>&nbsp &nbsp Data Management</a></li>
         <li class="active"><a href="/andrew.taylor/mw/settings"><span class="glyphicon glyphicon-wrench"></span>&nbsp &nbsp System Parameters</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
         <li>
-		  <a href="/andrew.taylor/mw/logout.php">
+		  <a href="/stefan.pawliszyn/mw/logout.php">
                 <span class="glyphicon glyphicon-log-out"></span>&nbsp &nbsp Logout (<?php echo($currentOperatorEmail); ?>)
            </a>
 		</li>
@@ -106,10 +106,11 @@ $status = 1;
 									runFrequency:$("#runFrequency").val(),
 									minAge:$("#minAge").val(),
 									evennessThres:$("#evennessThres").val(),
-									maxPhoto:$("#maxPhoto").val()
+									maxPhoto:$("#maxPhoto").val(),
+									minGender:$("#minGender").val()
 									},
 							success: function (result) {
-								
+									alert(result);
 							}
 							});     
 						  });
@@ -122,36 +123,41 @@ $status = 1;
 						$keys= array_keys($row);
 						echo('<fieldset class="form-group">');
 							echo('<div class="row">');
-								echo('<div class="form-group col-sm-2">');
+								echo('<div class="form-group col-sm-3">');
 									echo('<label for="consensusCount">'.$row[$keys[0]].'</label>');
 									echo('<input type="text" class="form-control" id="consensusCount" name="consensusCount" value="'.$row[$keys[1]].'"> ');
 								echo('</div>');
 								$row = $resultSettings->fetch_assoc();
-								echo('<div class="form-group col-sm-2">');
+								echo('<div class="form-group col-sm-3">');
 									echo('<label for="runFlag">'.$row[$keys[0]].'</label>');
 									echo('<input type="text" class="form-control" id="runFlag" name="runFlag" value="'.$row[$keys[1]].'">');
 								echo('</div>');
 								$row = $resultSettings->fetch_assoc();
-								echo('<div class="form-group col-sm-2">');
+								echo('<div class="form-group col-sm-3">');
 									echo('<label for="runFrequency">'.$row[$keys[0]].'</label>');
 									echo('<input type="text" class="form-control" id="runFrequency" name="runFrequency" value="'.$row[$keys[1]].'">');
+								echo('</div>');
+								$row = $resultSettings->fetch_assoc();
+								echo('<div class="form-group col-sm-3">');
+									echo('<label for="minAge">'.$row[$keys[0]].'</label>');
+									echo('<input type="text" class="form-control" id="minAge" name="minAge" value="'.$row[$keys[1]].'"> ');
 								echo('</div>');
 							echo('</div>');
 							echo('<div class="row">');
 								$row = $resultSettings->fetch_assoc();
-								echo('<div class="form-group col-sm-2">');
-									echo('<label for="minAge">'.$row[$keys[0]].'</label>');
-									echo('<input type="text" class="form-control" id="minAge" name="minAge" value="'.$row[$keys[1]].'"> ');
-								echo('</div>');
-								$row = $resultSettings->fetch_assoc();
-								echo('<div class="form-group col-sm-2">');
+								echo('<div class="form-group col-sm-3">');
 									echo('<label for="evennessThres">'.$row[$keys[0]].'</label>');
 									echo('<input type="text" class="form-control" id="evennessThres" name="evennessThres" value="'.$row[$keys[1]].'">');
 								echo('</div>');
 								$row = $resultSettings->fetch_assoc();
-								echo('<div class="form-group col-sm-2">');
+								echo('<div class="form-group col-sm-3">');
 									echo('<label for="maxPhoto">'.$row[$keys[0]].'</label>');
 									echo('<input type="text" class="form-control" id="maxPhoto" name="maxPhoto" value="'.$row[$keys[1]].'">');
+								echo('</div>');
+								$row = $resultSettings->fetch_assoc();
+								echo('<div class="form-group col-sm-3">');
+									echo('<label for="minGender">'.$row[$keys[0]].'</label>');
+									echo('<input type="text" class="form-control" id="minGender" name="minGender" value="'.$row[$keys[1]].'">');
 								echo('</div>');
 							echo('</div>');
 						echo('</fieldset>');
