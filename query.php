@@ -41,6 +41,7 @@
 	$timeTo = $_GET["timeTo"];
 	
 	$photoIDs = array();
+	$photoInfo = array();
 	
 	$res = $sqlConnection->query("SELECT * FROM `Photo' WHERE `classification_id` = " + $animalQ + ";");
 	if ($res->num_rows > 0) {
@@ -50,6 +51,42 @@
 		}
 	}
 	
-	$reply = (string)sizeOf($photoIDs) + $animalQ;
+	$check = 0;
+	
+	$res = $sqlConnecetion->query("SELECT `Photo`.`photo_id`, 'site_id', 'taken', `XClassification`.`species`, 'Options'.`option_id`, `option_name`, Site.'grid_ref' FROM `Photo`
+	RIGHT JOIN `XClassification`
+	ON `Photo`.`photo_id`=`XClassification`.`photo_id`
+	LEFT JOIN `Options`
+	ON `Options`.`option_id`=`species`
+	LEFT JOIN 'Site'
+	ON 'Photo.'site_id' = 'Site'.site_id");
+	if ($res->num_rows > 0) {
+		while($row = $res->fetch_assoc()) {
+			if(!empty($animalQ)){
+				if($row["option_id"] != $animalQ){
+					$check = 1;
+				}
+			}
+			if(!empty($habitatQ)){
+				if($row["site_id"] != $habitatQ){
+					$check = 1;
+				}
+			}
+			if(!empty($timeFromQ) && !empty($timeTo)){
+				if($row["taken"] > $timeFromQ && $row["taken"] < $timeTo){
+					$check = 1;
+				}
+			}
+			if($check = 0){
+				array_push($photoInfo, $row["option_id"]);
+				array_push($photoInfo, $row["site_id"]);
+				array_push($photoInfo, $row["grid_ref"]);
+				array_push($photoInfo, $row["taken"]);
+				array_push($photoIDs,$photoInfo);
+			}
+	}
+	
+	//$reply = (string)sizeOf($photoIDs) + $animalQ;
+	$reply = $photoIDs;
 	echo json_encode($reply,true);
 ?>
