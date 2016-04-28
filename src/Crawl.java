@@ -25,6 +25,7 @@ public class Crawl {
     static final int ID_FEMALE = 3;
     static final int ID_AGE_UNKNOWN = 85;
     static final int ID_GENDER_UNKNOWN = 1;
+    static final int ID_LIKE = 97;
     private Settings settings;
     Statement state;
     Statement updateClassifiedState;
@@ -41,6 +42,14 @@ public class Crawl {
         } catch (SQLException ex) {
             System.out.println("SQL Error: " + ex.getMessage().toString());
         }
+    }
+
+    public Settings getSettings() {
+        return settings;
+    }
+
+    public void getNewSettings() throws SQLException {
+        settings.getNewSettings();
     }
 
     public Connection connectDataBase() {
@@ -93,8 +102,8 @@ public class Crawl {
          * Gets the median number of different species people have classified as being in a given photo.
          **/
         String query = "SELECT COUNT(*) AS count FROM " +
-                "(SELECT `species`, `person_id` FROM `MammalWeb`.`Animal` where photo_id=" +
-                photo_id.toString() + " " +
+                "(SELECT `species`, `person_id` FROM (SELECT * FROM `MammalWeb`.`Animal` where photo_id=" +
+                photo_id.toString() + " AND species != " + ID_LIKE + " LIMIT 0," + settings.getMaxVotes() + ") as LimitedVotes " +
                 "GROUP BY `person_id`, `species`) AS GroupedVotes " +
                 "GROUP BY `person_id` ORDER BY count;";
 
@@ -322,7 +331,6 @@ public class Crawl {
          **/
         try {
             for (int i = 0; i < option_ids.size(); i++) {
-                //Integer gender = 1; // TODO: remove
                 String updateQuery =
                         "INSERT INTO `MammalWeb`.`XClassification`(`photo_id`, `species`, `age`, `gender`)" +
                                 "VALUES (" + photo_id.toString() + "," + option_ids.get(i) + ',' + age_ids.get(i) + ',' + gender_ids.get(i) + ")";
@@ -340,7 +348,7 @@ public class Crawl {
         ArrayList<Integer> species = new ArrayList<Integer>();
         ArrayList<Integer> ages = new ArrayList<Integer>();
         ArrayList<Integer> genders = new ArrayList<Integer>();
-        String query = "SELECT species, gender, age FROM MammalWeb.Animal WHERE photo_id = " + photo_id.toString() + ";";
+        String query = "SELECT species, gender, age FROM MammalWeb.Animal WHERE photo_id = " + photo_id.toString() + " AND species != " + ID_LIKE + " LIMIT 0," + settings.getMaxVotes() + ";";
         ResultSet relatedPhotos = state.executeQuery(query);
 
         while(relatedPhotos.next()) {
@@ -354,7 +362,7 @@ public class Crawl {
 
     public boolean classifyImages() {
         // Get unclassified photos in ascending order
-        String getAnimalInstance = "SELECT animal_id, photo_id FROM MammalWeb.Animal WHERE `photo_id` NOT IN (SELECT `photo_id` FROM MammalWeb.XClassification) ORDER BY animal_id";
+        String getAnimalInstance = "SELECT animal_id, photo_id FROM MammalWeb.Animal WHERE `photo_id` NOT IN (SELECT `photo_id` FROM MammalWeb.XClassification) AND species != " + ID_LIKE + " ORDER BY animal_id";
         String getPhotos = null;
         try {
             ResultSet animalInstance = null;
@@ -382,7 +390,24 @@ public class Crawl {
     public static void main(String[] args)
     {
         Crawl crawl = new Crawl();
-        crawl.classifyImages();
+        while (true) {
+                try {
+                    crawl.getNewSettings();
+                } catch (SQLException e) {
+                    System.err.println("Error getting crawler settings.");
+                    e.printStackTrace();
+                    break;
+                }
+
+                if (crawl.getSettings().getRunFlag())
+                    crawl.classifyImages();
+
+                try {
+                    Thread.sleep(crawl.getSettings().getRunFrequency()*1000);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+        }
     }
 
 }
@@ -496,13 +521,19 @@ class Settings{
                     runFrequency = settings.getInt("setting_value");
                     break;
                 case SETTING_RUNFLAG:
-                    runFlag = settings.getBoolean("setting_value");
+                    runFlag = settings.getInt("setting_value") != 0;
                     break;
                 case SETTING_MINAGEPROPORTION:
-                    minAgeProportion = settings.getDouble("setting_value");
+                    minAgeProportion = settings.getInt("setting_value")/100.0;
                     break;
                 case SETTING_MINGENDERPROPORTION:
-                    minGenderProportion = settings.getDouble("setting_value");
+                    minGenderProportion = settings.getInt("setting_value")/100.0;
+                    break;
+                case SETTING_EVENNESS_THRESHOLD:
+                    evennessThreshold = settings.getInt("setting_value")/100.0;
+                    break;
+                case SETTING_MAX_VOTES:
+                    maxVotes = settings.getInt("setting_value");
                     break;
             }
         }
