@@ -90,7 +90,7 @@ public class Crawl {
         double evenness = 0;
 
         for (Object value : temp.values()) {
-            numerator += (double) ((Double.parseDouble(value.toString()) / species.size()) * (Math.log(Double.parseDouble(value.toString()) / species.size())));
+            numerator += ((Double.parseDouble(value.toString()) / species.size()) * (Math.log(Double.parseDouble(value.toString()) / species.size())));
         }
         evenness = (-numerator) / Math.log(species.size());
 
@@ -362,7 +362,7 @@ public class Crawl {
 
     public boolean classifyImages() {
         // Get unclassified photos in ascending order
-        String getAnimalInstance = "SELECT animal_id, photo_id FROM MammalWeb.Animal WHERE `photo_id` NOT IN (SELECT `photo_id` FROM MammalWeb.XClassification) AND species != " + ID_LIKE + " ORDER BY animal_id";
+        String getAnimalInstance = "SELECT animal_id, photo_id FROM MammalWeb.Animal WHERE `photo_id` NOT IN (SELECT `photo_id` FROM MammalWeb.XClassification) AND species != " + ID_LIKE + " AND `animal_id` > " + settings.getLastClassifiedID() + " ORDER BY animal_id";
         String getPhotos = null;
         try {
             ResultSet animalInstance = null;
@@ -372,11 +372,18 @@ public class Crawl {
             // Generate set of photos to be updated
             animalInstance = state.executeQuery(getAnimalInstance);
             LinkedHashSet<Integer> photosToUpdate = new LinkedHashSet<Integer>();
+            int id = 0;
+            int maxID = 0;
             while (animalInstance.next()) {
                 photosToUpdate.add(animalInstance.getInt("photo_id"));
+                id = animalInstance.getInt("animal_id");
+                if (id > maxID) {
+                    maxID = id;
+                }
             }
             // Update all photos in set
             updatePhotos(photosToUpdate);
+            settings.setLastClassifiedID(maxID);
 
         }catch(Exception e){
             e.printStackTrace();
@@ -466,6 +473,7 @@ class Settings{
     private Integer minConsensusCount = 0;
     private Integer runFrequency = 0;
     private Integer maxVotes = 0;
+    private Integer lastClassifiedID = 0;
     private boolean runFlag = false;
     private Double minAgeProportion = 0.4;
     private Double minGenderProportion = 0.4;
@@ -474,12 +482,13 @@ class Settings{
     private Statement statement;
 
     private static final int SETTING_CONSENSUSCOUNT = 1;
-    private static final int SETTING_RUNFREQUENCY = 2;
-    private static final int SETTING_RUNFLAG = 3;
+    private static final int SETTING_RUNFLAG = 2;
+    private static final int SETTING_RUNFREQUENCY = 3;
     private static final int SETTING_MINAGEPROPORTION = 4;
     private static final int SETTING_EVENNESS_THRESHOLD = 5;
     private static final int SETTING_MAX_VOTES = 6;
     private static final int SETTING_MINGENDERPROPORTION = 7;
+    private static final int SETTING_LASTCLASSIFIEDID = 8;
 
     public Settings(Connection con) throws SQLException {
         this.con = con;
@@ -506,6 +515,15 @@ class Settings{
     }
     public double getMinGenderProportion() {
         return minGenderProportion/100.0;
+    }
+    public int getLastClassifiedID() {
+        return lastClassifiedID;
+    }
+
+    public void setLastClassifiedID(int id) throws SQLException {
+        String updateQuery = "UPDATE  `MammalWeb`.`CrawlerSettings` SET  `setting_value` = '" + id + "' WHERE  `CrawlerSettings`.`setting_id` = " + SETTING_LASTCLASSIFIEDID + ";";
+        statement.executeUpdate(updateQuery);
+        lastClassifiedID = id;
     }
 
     public void getNewSettings() throws SQLException {
@@ -534,6 +552,9 @@ class Settings{
                     break;
                 case SETTING_MAX_VOTES:
                     maxVotes = settings.getInt("setting_value");
+                    break;
+                case SETTING_LASTCLASSIFIEDID:
+                    lastClassifiedID = settings.getInt("setting_value");
                     break;
             }
         }
